@@ -1,6 +1,5 @@
 app:
   id: ari:cloud:ecosystem::app/6a5e2447-a58d-4cc4-8c56-12c73cb3b5a0
-  name: ShipSignal
   runtime:
     name: nodejs24.x
 
@@ -79,8 +78,8 @@ permissions:
   external:
     fetch:
       backend:
-        - "*.atlassian.net"
-        - api.bitbucket.org
-        - api.atlassian.com
+        - address: "*.atlassian.net"
+        - address: api.bitbucket.org
+        - address: api.atlassian.com
 
 remotes: []
