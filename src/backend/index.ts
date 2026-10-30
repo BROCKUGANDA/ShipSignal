@@ -2,6 +2,7 @@ import Resolver from "@forge/resolver";
 import { ReleaseService } from "./services/release-service";
 import { JiraAdapter } from "./integrations/jira-adapter";
 import { normalizeError } from "./security/errors";
+import { handleSyncEvent } from "./events/sync-handler";
 import { GetReleaseReadinessRequestSchema, GetReleaseBlockersRequestSchema } from "../domain/schemas";
 
 const resolver = new Resolver();
@@ -77,4 +78,13 @@ resolver.define("updateRiskStatus", async (req) => {
   return { success: true, data: { updated: true } };
 });
 
-export const handler = resolver.getDefinitions();
+resolver.define("handleSyncEvent", async (req) => {
+  try {
+    const payload = (req.payload ?? {}) as { eventId?: string; workspaceId?: string };
+    const result = await handleSyncEvent(payload);
+    return { success: true, data: result };
+  } catch (error) {
+    const normalized = normalizeError(error);
+    return { success: false, error: normalized };
+  }
+});
