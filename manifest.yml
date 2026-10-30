@@ -1,5 +1,5 @@
 app:
-  id: ari:cloud:ecosystem::app/dba86381-3773-4a69-86ff-775eed43ff3f
+  id: ari:cloud:ecosystem::app/6a5e2447-a58d-4cc4-8c56-12c73cb3b5a0
   name: ShipSignal
   runtime:
     name: nodejs24.x
@@ -32,6 +32,7 @@ modules:
       resolver:
         function: resolver
       title: ShipSignal
+      route: shipsignal
 
   rovo:agent:
     - key: shipsignal-agent
@@ -46,10 +47,12 @@ modules:
 
   action:
     - key: get-release-readiness
+      name: Get Release Readiness
       function: resolver
       actionVerb: GET
       description: Get release readiness assessment.
     - key: get-release-blockers
+      name: Get Release Blockers
       function: resolver
       actionVerb: GET
       description: Get release blockers.
@@ -58,8 +61,8 @@ modules:
     - key: shipsignal-mcp
       name: ShipSignal MCP
       tools:
-        - get_release_readiness
-        - get_release_blockers
+        - get-release-readiness
+        - get-release-blockers
 
 resources:
   - key: main
@@ -69,18 +72,15 @@ permissions:
   scopes:
     - read:jira-work
     - write:jira-work
-    - read:bitbucket
-    - write:bitbucket
     - read:confluence-content.all
     - read:confluence-space.summary
-    - read:compass:component
-    - read:compass:relationship
+    - read:component:compass
     - storage:app
   external:
     fetch:
       backend:
         - "*.atlassian.net"
-        - "api.bitbucket.org"
-        - "api.atlassian.com"
+        - api.bitbucket.org
+        - api.atlassian.com
 
 remotes: []
