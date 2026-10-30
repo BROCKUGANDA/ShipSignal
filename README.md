@@ -25,15 +25,23 @@ npm run build:backend
 npm test
 ```
 
-## Deployment
+## Deployment (user-run)
 
-Requires Atlassian Forge CLI and a valid Atlassian account.
-
-```bash
-forge login
-forge deploy
-forge install
-```
+1. Create a Developer Space at https://developer.atlassian.com/console/myapps/
+2. Register the app:
+   ```
+   forge register ShipSignal --personal
+   # or with a developer space:
+   forge register ShipSignal -s <developer-space-id>
+   ```
+   This populates `app.id` in manifest.yml.
+3. Set environment and deploy:
+   ```
+   forge deploy
+   forge install --site shipsignal.atlassian.net --product jira
+   forge install --site shipsignal.atlassian.net --product confluence
+   ```
+4. For local development: `forge tunnel`
 
 ## Notes
 
