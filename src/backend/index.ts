@@ -2,6 +2,7 @@ import Resolver from "@forge/resolver";
 import { ReleaseService } from "./services/release-service";
 import { JiraAdapter } from "./integrations/jira-adapter";
 import { normalizeError } from "./security/errors";
+import { SyncWorker } from "./workers/sync-worker";
 import { handleSyncEvent } from "./events/sync-handler";
 import { GetReleaseReadinessRequestSchema, GetReleaseBlockersRequestSchema } from "../domain/schemas";
 
