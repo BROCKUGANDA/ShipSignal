@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "CommonJS",
+    "moduleResolution": "Bundler",
+    "lib": ["ES2022"],
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "skipLibCheck": true,
+    "types": ["node"],
+    "esModuleInterop": true,
+    "outDir": "dist/backend",
+    "rootDir": "src",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@backend/*": ["./src/backend/*"],
+      "@domain/*": ["./src/domain/*"]
+    }
+  },
+  "include": ["src/backend", "src/domain"],
+  "exclude": ["node_modules", "src/frontend"]
+}

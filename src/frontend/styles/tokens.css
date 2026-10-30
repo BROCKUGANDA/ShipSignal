@@ -1,0 +1,46 @@
+:root {
+  --color-brand-ink: #172b4d;
+  --color-signal-blue: #315cde;
+  --color-signal-cyan: #20b8c5;
+  --color-signal-violet: #7867d5;
+  --color-warm-amber: #d99a35;
+  --color-canvas: #f7f8fa;
+  --color-surface-deep: #151b2b;
+
+  --color-success: #216e4e;
+  --color-warning: #b38600;
+  --color-critical: #ae2e24;
+  --color-info: #0065ff;
+  --color-neutral: #626f86;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 40px;
+  --space-8: 48px;
+  --space-9: 64px;
+
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+
+  --font-sans: "Atlassian Sans", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "Atlassian Mono", "Consolas", monospace;
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--color-canvas);
+  color: var(--color-brand-ink);
+  margin: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

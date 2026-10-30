@@ -1,0 +1,86 @@
+app:
+  id: ari:cloud:ecosystem::app/00000000-0000-0000-0000-000000000000
+  name: ShipSignal
+  runtime:
+    name: nodejs24.x
+
+modules:
+  function:
+    - key: resolver
+      handler: index.handler
+
+  webtrigger:
+    - key: sync-webtrigger
+      function: resolver
+
+  scheduledTrigger:
+    - key: reconciliation-trigger
+      function: resolver
+      interval: hour
+
+  jira:projectPage:
+    - key: shipsignal-project-page
+      resource: main
+      resolver:
+        function: resolver
+      title: ShipSignal
+      icon: https://example.com/icon.svg
+
+  confluence:spacePage:
+    - key: shipsignal-space-page
+      resource: main
+      resolver:
+        function: resolver
+      title: ShipSignal
+
+  rovo:agent:
+    - key: shipsignal-agent
+      name: ShipSignal Agent
+      description: Evidence-backed release intelligence assistant.
+      prompt: |
+        You are the ShipSignal agent. Retrieve evidence before answering.
+        Never invent records. Distinguish facts from inference.
+      actions:
+        - get-release-readiness
+        - get-release-blockers
+
+  action:
+    - key: get-release-readiness
+      function: resolver
+      actionVerb: GET
+      description: Get release readiness assessment.
+    - key: get-release-blockers
+      function: resolver
+      actionVerb: GET
+      description: Get release blockers.
+
+  rovo:mcp:
+    - key: shipsignal-mcp
+      name: ShipSignal MCP
+      tools:
+        - get_release_readiness
+        - get_release_blockers
+
+resources:
+  - key: main
+    path: static/frontend
+
+permissions:
+  scopes:
+    - read:jira-work
+    - write:jira-work
+    - read:bitbucket
+    - write:bitbucket
+    - read:confluence-content.all
+    - read:confluence-space.summary
+    - read:compass:component
+    - read:compass:relationship
+    - storage:app
+  external:
+    fetch:
+      backend:
+        - "*.atlassian.net"
+        - "api.bitbucket.org"
+        - "api.atlassian.com"
+
+remotes: []
