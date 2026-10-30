@@ -7,7 +7,7 @@ app:
 modules:
   function:
     - key: resolver
-      handler: index.handler
+      handler: backend/index.handler
 
   webtrigger:
     - key: sync-webtrigger

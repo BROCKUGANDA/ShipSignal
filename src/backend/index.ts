@@ -89,3 +89,18 @@ resolver.define("handleSyncEvent", async (req) => {
     return { success: false, error: normalized };
   }
 });
+
+resolver.define("syncProject", async (req) => {
+  try {
+    const workspaceId = (req.context as { workspaceId?: string })?.workspaceId ?? "default";
+    const worker = new SyncWorker();
+    const result = await worker.run(workspaceId);
+    return { success: true, data: result };
+  } catch (error) {
+    const normalized = normalizeError(error);
+    return { success: false, error: normalized };
+  }
+});
+
+export const handler = resolver.getDefinitions();
+
