@@ -19,7 +19,13 @@ export default function Shell() {
   return (
     <div style={{ display: "flex", minHeight: "100vh" }}>
       <aside style={{ width: 240, padding: 16, borderRight: "1px solid #dcdfe4" }}>
-        <h1 style={{ fontSize: 18, margin: "0 0 16px" }}>ShipSignal</h1>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+          <img src="./logo.svg" alt="ShipSignal logo" width={36} height={36} style={{ borderRadius: 8, flexShrink: 0 }} onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />
+          <div>
+            <h1 style={{ fontSize: 18, margin: 0, lineHeight: 1.1 }}>ShipSignal</h1>
+            <div style={{ fontSize: 11, color: "#5e6c84", letterSpacing: "0.04em" }}>RELEASE INTELLIGENCE</div>
+          </div>
+        </div>
         <nav style={{ display: "flex", flexDirection: "column", gap: 4 }}>
           {navItems.map((item) => (
             <NavLink

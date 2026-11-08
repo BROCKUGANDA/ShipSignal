@@ -82,12 +82,12 @@ modules:
     - key: create-remediation-task
       name: Create Remediation Task
       function: resolver
-      actionVerb: POST
+      actionVerb: CREATE
       description: Create remediation task.
     - key: update-risk-status
       name: Update Risk Status
       function: resolver
-      actionVerb: POST
+      actionVerb: UPDATE
       description: Update risk status.
 
   rovo:mcp:
