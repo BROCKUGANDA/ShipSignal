@@ -40,6 +40,43 @@ export class ReleaseRepository {
     return (result.rows ?? []).map((r) => this.map(r));
   }
 
+  async upsert(release: Release): Promise<void> {
+    const now = release.updatedAt;
+    await sql
+      .prepare(
+        `INSERT INTO releases (id, workspace_id, project_id, version, title, status, target_date, created_at, updated_at, version_token)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         ON DUPLICATE KEY UPDATE version = VALUES(version), title = VALUES(title), status = VALUES(status), target_date = VALUES(target_date), updated_at = VALUES(updated_at), version_token = version_token + 1`
+      )
+      .bindParams(
+        release.id,
+        release.workspaceId,
+        release.projectId,
+        release.version,
+        release.title,
+        release.status,
+        release.targetDate ?? null,
+        release.createdAt,
+        now,
+        release.versionToken
+      )
+      .execute();
+  }
+
+  async updateStatus(workspaceId: string, releaseId: string, status: string): Promise<boolean> {
+    const now = new Date().toISOString();
+    const result = await sql
+      .prepare(
+        `UPDATE releases SET status = ?, updated_at = ?, version_token = version_token + 1
+         WHERE workspace_id = ? AND id = ?`
+      )
+      .bindParams(status, now, workspaceId, releaseId)
+      .execute();
+    // Forge SQL update result shape varies; verify by re-reading.
+    const after = await this.findById(workspaceId, releaseId);
+    return after !== null && after.status === status;
+  }
+
   private map(row: ReleaseRow): Release {
     return {
       id: row.id,

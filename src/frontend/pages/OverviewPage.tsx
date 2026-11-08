@@ -16,16 +16,16 @@ export default function OverviewPage() {
 
   const releases = releasesData?.releases ?? [];
   const active = releases.filter((r: any) => r.status === "ACTIVE").length;
-  const blockers = 0; // derived from release readiness; shown honestly as unknown until assessed
-  const critical = 0;
+  const critical = releases.filter((r: any) => r.status === "BLOCKED").length;
+  const blockers = releases.filter((r: any) => r.status === "BLOCKED" || r.status === "AT_RISK").length;
 
   return (
     <div>
       <PageHeader title="Workspace Overview" subtitle="Evidence-driven release intelligence." />
       <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginBottom: 24 }}>
         <MetricCard label="Active Releases" value={active} hint={releases.length ? `${releases.length} tracked` : "Connect a project to begin."} />
-        <MetricCard label="Critical Risks" value={critical} hint={critical === 0 ? "Evaluate releases to compute" : ""} />
-        <MetricCard label="Open Blockers" value={blockers} hint={blockers === 0 ? "No blockers assessed yet" : ""} />
+        <MetricCard label="Critical Risks" value={critical} hint={critical === 0 ? "No blocked releases" : `${critical} blocked`} />
+        <MetricCard label="Open Blockers" value={blockers} hint={blockers === 0 ? "No at-risk/blocked releases" : `${blockers} need attention`} />
       </div>
       {loading ? <LoadingState label="Checking integration health..." /> : null}
       {error ? <ErrorState message={error} onRetry={() => void call()} /> : null}

@@ -23,7 +23,6 @@ modules:
       resolver:
         function: resolver
       title: ShipSignal
-      icon: https://example.com/icon.svg
 
   confluence:spacePage:
     - key: shipsignal-space-page
@@ -55,6 +54,41 @@ modules:
       function: resolver
       actionVerb: GET
       description: Get release blockers.
+    - key: get-project-health
+      name: Get Project Health
+      function: resolver
+      actionVerb: GET
+      description: Get integration health.
+    - key: get-change-impact
+      name: Get Change Impact
+      function: resolver
+      actionVerb: GET
+      description: Get change impact.
+    - key: get-service-dependencies
+      name: Get Service Dependencies
+      function: resolver
+      actionVerb: GET
+      description: Get service dependencies.
+    - key: get-risk-evidence
+      name: Get Risk Evidence
+      function: resolver
+      actionVerb: GET
+      description: Get risk evidence.
+    - key: generate-release-report
+      name: Generate Release Report
+      function: resolver
+      actionVerb: GET
+      description: Generate release report.
+    - key: create-remediation-task
+      name: Create Remediation Task
+      function: resolver
+      actionVerb: POST
+      description: Create remediation task.
+    - key: update-risk-status
+      name: Update Risk Status
+      function: resolver
+      actionVerb: POST
+      description: Update risk status.
 
   rovo:mcp:
     - key: shipsignal-mcp
@@ -62,6 +96,13 @@ modules:
       tools:
         - get-release-readiness
         - get-release-blockers
+        - get-project-health
+        - get-change-impact
+        - get-service-dependencies
+        - get-risk-evidence
+        - generate-release-report
+        - create-remediation-task
+        - update-risk-status
 
 resources:
   - key: main

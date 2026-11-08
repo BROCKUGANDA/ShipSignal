@@ -1,6 +1,20 @@
 import api, { route } from "@forge/api";
 import type { IntegrationProvider, HealthResult, Capability, ProviderResult, ProviderRequest } from "./provider";
 
+export interface JiraProject {
+  id: string;
+  key: string;
+  name: string;
+}
+
+export interface JiraVersion {
+  id: string;
+  name: string;
+  description?: string;
+  released?: boolean;
+  releaseDate?: string;
+}
+
 export class JiraAdapter implements IntegrationProvider {
   async connect(): Promise<{ success: boolean; message?: string }> {
     return { success: true };
@@ -19,8 +33,23 @@ export class JiraAdapter implements IntegrationProvider {
     return [
       { name: "issues", available: true },
       { name: "projects", available: true },
+      { name: "versions", available: true },
       { name: "boards", available: true },
     ];
+  }
+
+  async fetchProjects(limit = 25): Promise<JiraProject[]> {
+    const res = await api.asApp().requestJira(route`/rest/api/3/project/search?maxResults=${limit}`);
+    if (!res.ok) return [];
+    const json = (await res.json()) as { values?: JiraProject[] };
+    return json.values ?? [];
+  }
+
+  async fetchVersions(projectId: string): Promise<JiraVersion[]> {
+    const res = await api.asApp().requestJira(route`/rest/api/3/project/${projectId}/versions`);
+    if (!res.ok) return [];
+    const json = (await res.json()) as JiraVersion[];
+    return Array.isArray(json) ? json : [];
   }
 
   async fetchPage<T>(request: ProviderRequest): Promise<ProviderResult<T>> {

@@ -7,6 +7,8 @@ import { JiraAdapter } from "./integrations/jira-adapter";
 import { BitbucketAdapter } from "./integrations/bitbucket-adapter";
 import { ConfluenceAdapter } from "./integrations/confluence-adapter";
 import { CompassAdapter } from "./integrations/compass-adapter";
+import { TeamworkGraphAdapter } from "./integrations/teamwork-graph-adapter";
+import { ensureMigrations } from "./database/migrations";
 import { normalizeError, correlationIdFromRequest, resolveWorkspaceId } from "./security/errors";
 import { SyncWorker } from "./workers/sync-worker";
 import { handleSyncEvent } from "./events/sync-handler";
@@ -58,9 +60,10 @@ resolver.define("getReleaseReadiness", async (req) => {
     if (!workspaceId) return { success: false, error: { code: "AUTHENTICATION_ERROR" as const, message: "Workspace context required.", retryable: false, correlationId: correlationIdFromRequest(req) } };
     const release = await releaseRepo.findById(workspaceId, releaseId);
     if (!release) return notFound();
-    const evidenceRows = await evidenceRepo.listByWorkspace(workspaceId, 100);
+    const linked = await evidenceRepo.listByRelease(workspaceId, releaseId, 100);
+    const workspaceEvidence = linked.length ? [] : await evidenceRepo.listByWorkspace(workspaceId, 100);
+    const evidenceRows = linked.length ? linked : workspaceEvidence;
     const evidence = evidenceRows
-      .filter((e) => !releaseId || true) // evidence is workspace-scoped; release linkage via summary prefix in future
       .map((e) => ({
         id: e.id,
         workspaceId: e.workspace_id,
@@ -83,6 +86,9 @@ resolver.define("getReleaseReadiness", async (req) => {
       hasCriticalIssues: hasCritical,
     });
     if (!assessment) return notFound();
+    if (linked.length === 0 && workspaceEvidence.length > 0) {
+      assessment.warnings.push("No evidence linked to this release yet; workspace evidence used for context.");
+    }
     AuditService.record({
       id: `audit-${correlationIdFromRequest(req)}`,
       workspaceId,
@@ -137,11 +143,14 @@ resolver.define("getProjectHealth", async (req) => {
     const bb = new BitbucketAdapter();
     const cf = new ConfluenceAdapter();
     const compass = new CompassAdapter();
-    const [jiraHealth, bbHealth, cfHealth, compassHealth] = await Promise.all([
+    const accountId = (req.context as { accountId?: string })?.accountId;
+    const twg = new TeamworkGraphAdapter(accountId);
+    const [jiraHealth, bbHealth, cfHealth, compassHealth, twgHealth] = await Promise.all([
       breakerFor("jira").execute(() => jira.healthCheck()),
       breakerFor("bitbucket").execute(() => bb.healthCheck()),
       breakerFor("confluence").execute(() => cf.healthCheck()),
       compass.healthCheck(),
+      twg.healthCheck(),
     ]);
     return {
       success: true,
@@ -150,6 +159,7 @@ resolver.define("getProjectHealth", async (req) => {
         bitbucket: bbHealth,
         confluence: cfHealth,
         compass: compassHealth,
+        teamworkGraph: twgHealth,
         overall: jiraHealth.healthy || bbHealth.healthy || cfHealth.healthy,
         checkedAt: new Date().toISOString(),
       },
@@ -311,8 +321,11 @@ resolver.define("updateRiskStatus", async (req) => {
     const { releaseId, status, reason } = UpdateRiskStatusRequestSchema.parse(req.payload ?? {});
     const workspaceId = resolveWorkspaceId(req.context, req.payload);
     const release = workspaceId ? await releaseRepo.findById(workspaceId, releaseId) : null;
-    if (!release) return notFound();
-    // Persist audit event; Forge SQL update for releases is future migration - record intent honestly
+    if (!release || !workspaceId) return notFound();
+    const persisted = await releaseRepo.updateStatus(workspaceId, releaseId, status);
+    if (!persisted) {
+      return { success: false, error: { code: "DATABASE_ERROR" as const, message: "Release status update could not be persisted.", retryable: true, correlationId: correlationIdFromRequest(req) } };
+    }
     AuditService.record({
       id: `audit-${correlationIdFromRequest(req)}`,
       workspaceId,
@@ -355,6 +368,7 @@ resolver.define("syncProject", async (req) => {
 
 resolver.define("listReleases", async (req) => {
   try {
+    await ensureMigrations();
     const workspaceId = resolveWorkspaceId(req.context, req.payload);
     if (!workspaceId) return { success: false, error: { code: "AUTHENTICATION_ERROR" as const, message: "Workspace context required.", retryable: false, correlationId: correlationIdFromRequest(req) } };
     const releases = await releaseRepo.listByWorkspace(workspaceId, 50);
