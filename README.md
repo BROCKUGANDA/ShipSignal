@@ -9,7 +9,7 @@ It doesn't guess — it shows its work.</p>
 
 <p align="center">
   <a href="https://shipsignal.atlassian.net">Live site</a> ·
-  <a href="demo-video/demo-final.mp4">Demo video (3:04)</a> ·
+  <a href="https://youtu.be/mXgh5iUUsQ0">Demo video (3:04)</a> ·
   <a href="docs/JUDGING_GUIDE.md">Judging guide</a> ·
   <a href="docs/DEVPOST_SUBMISSION.md">Devpost submission</a>
 </p>
@@ -31,7 +31,7 @@ ShipSignal is a **real, deployed Atlassian Forge application** (not a mockup) th
 1. **Live site:** [shipsignal.atlassian.net](https://shipsignal.atlassian.net)
 2. **App ID:** `ari:cloud:ecosystem::app/6a5e2447-a58d-4cc4-8c56-12c73cb3b5a0` — installed in Jira + Confluence (development).
 3. **Demo flow:** Jira project page → ShipSignal panel → release list → release detail (10 tabs) → dependency graph → risk register → Ask Rovo *"Why is release X at risk?"* → invoke MCP `get_release_readiness` → check Audit.
-4. **Video:** `demo-video/demo-final.mp4` (3:04, narrated).
+4. **Video:** [https://youtu.be/mXgh5iUUsQ0](https://youtu.be/mXgh5iUUsQ0) (3:04, narrated; local file `demo-video/demo-final.mp4`).
 5. **Verify locally:** `npm run typecheck && npm run build && npm run build:backend && npm test`
 
 Full walkthrough: [`docs/JUDGING_GUIDE.md`](docs/JUDGING_GUIDE.md). Bonus-prize map (Rovo / MCP / Teamwork Graph) is in [`docs/DEVPOST_SUBMISSION.md`](docs/DEVPOST_SUBMISSION.md).
