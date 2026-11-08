@@ -1,9 +1,10 @@
 # ShipSignal — Devpost Submission (Atlassian Codegeist 2026)
 
-**Project URL (after upload):** https://youtu.be/YOUR_VIDEO_ID  
+**Project URL:** https://youtu.be/mXgh5iUUsQ0  
 **Live site:** https://shipsignal.atlassian.net  
 **App ID:** `ari:cloud:ecosystem::app/6a5e2447-a58d-4cc4-8c56-12c73cb3b5a0`  
-**Demo video:** 3:04, 1920×1080, narrated (see `demo-video/demo-final.mp4`)
+**Demo video:** 3:04, 1920×1080, narrated (see `demo-video/demo-final.mp4`)  
+**Install link for judges:** From Developer Console → ShipSignal → *Start sharing your app* → copy the share link here before submitting (Devpost requires this).
 
 ---
 
@@ -24,19 +25,19 @@ ShipSignal is a real, deployed Atlassian Forge application (not a mockup) that c
 - Dependency graph: topology, critical paths, missing/unverified relationships (never fabricated)
 - Risk register + evidence explorer with provenance and freshness (CURRENT/STALE/PARTIAL/UNKNOWN)
 - Rovo Agent: evidence-grounded Q&A ("Why is 2.4.0 at risk?")
-- MCP server: 9 typed tools (read-only independent; mutations gated)
-- Sync worker: idempotent reconciliation, partial results, audit trail
+- MCP server: 9 typed tools declared in the manifest (read-only independent; mutations gated)
+- Sync worker: creates releases from real Jira project versions, idempotent reconciliation, partial results, audit trail
 
 ### Bonus prizes targeted
 - **Best Rovo Agents:** dedicated `rovo:agent` + `action` modules
 - **Best Atlassian MCP:** `rovo:mcp` with `get_release_readiness`, `get_release_blockers`, `get_project_health`, `get_change_impact`, `get_service_dependencies`, `get_risk_evidence`, `generate_release_report`, `create_remediation_task`, `update_risk_status`
-- **Best Teamwork Graph:** adapter with resilient fallback to authorised sources
+- **Best Teamwork Graph:** genuine `requestTeamworkGraph` consumption via `api.asUser(accountId)` with honest fallback when no user context is available; Compass via `requestGraph` GraphQL
 
 ## Tech Stack
 Atlassian Forge (nodejs24.x) · TypeScript strict · React 18 Custom UI + Atlaskit · Forge SQL · `@forge/api` / `@forge/resolver` / `@forge/bridge` · Zod · Vitest · Vite
 
 ## Architecture
-Modular: `src/frontend` (UI) · `src/backend` (resolvers, services, repositories, integrations, workers, security) · `src/domain` (types, schemas, deterministic risk engine). Vendor isolation via adapter anti-corruption layer. Security: server-side authz, tenant isolation, parameterised SQL, idempotency, exponential backoff + jitter, per-provider circuit breakers. Tests: 16 passing (risk engine, retry, circuit breaker, validation, idempotency, contracts, UI).
+Modular: `src/frontend` (UI) · `src/backend` (resolvers, services, repositories, integrations, workers, security) · `src/domain` (types, schemas, deterministic risk engine). Vendor isolation via adapter anti-corruption layer. Security: server-side authz, tenant isolation, parameterised SQL, idempotency, exponential backoff + jitter, per-provider circuit breakers. Tests: 34 passing (risk engine, retry, circuit breaker, validation, idempotency, contracts, manifest MCP coverage).
 
 ## How to Try It
 1. Open https://shipsignal.atlassian.net → Jira project page → ShipSignal panel; Confluence space page → ShipSignal (`/shipsignal`).
@@ -48,9 +49,9 @@ Modular: `src/frontend` (UI) · `src/backend` (resolvers, services, repositories
 - Forge scope model: workspace vs site scopes can't mix (Bitbucket `read:repository:bitbucket` removed to lint-clean; adapter retained for a future workspace-scoped companion). Developer Space creation requires the web console. Forge SQL has no FK cascades — explicit cleanup.
 
 ## Accomplishments
-- ✅ `forge lint` clean, deployed v2.2.0, installed + upgraded in Jira & Confluence
-- ✅ 16/16 tests, typecheck + frontend/backend builds green
-- ✅ 3:04 narrated demo video (HyperFrames + Kokoro TTS at natural pace, ffmpeg loudness-normalised to −14 LUFS)
+- ✅ `forge lint` clean, deployed v2.3.0, installed + upgraded in Jira & Confluence
+- ✅ 34/34 tests, typecheck + frontend/backend builds green
+- ✅ 3:04 narrated demo video (HyperFrames + Kokoro TTS at natural pace, ffmpeg loudness-normalised to −14 LUFS) — https://youtu.be/mXgh5iUUsQ0
 
 ## What's Next
 Bitbucket workspace-scoped companion, real-time webhooks, notifications, deeper impact analysis.
@@ -58,8 +59,9 @@ Bitbucket workspace-scoped companion, real-time webhooks, notifications, deeper 
 ---
 
 ## Submission checklist for Devpost
-- [ ] Upload `demo-video/demo-final.mp4` to YouTube (public, < 5 min) and paste URL above
+- [x] Upload `demo-video/demo-final.mp4` to YouTube (public, < 5 min) — https://youtu.be/mXgh5iUUsQ0
 - [ ] Paste the sections above into Devpost fields (Story / Tech / Challenges / Accomplishments)
 - [ ] Add screenshots: use frames in `demo-video/.hyperframes/artifacts/snapshots/`
-- [ ] Add repo link + install link (Developer Console app page)
-- [ ] Select categories: Apps for Software Teams + Best Rovo Agents / Best Atlassian MCP / Best Teamwork Graph
+- [ ] Add the *Start sharing your app* install link from Developer Console (see top of this file)
+- [ ] Select category: **Apps for Software Teams**; bonus prizes: **Best Rovo Agents**, **Best Atlassian MCP**, **Best Teamwork Graph** (do NOT select Marketplace — not published)
+- [ ] Run sync once on the live site (Integrations → Run sync now) so releases populate before judging
