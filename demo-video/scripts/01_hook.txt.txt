@@ -1,0 +1,1 @@
+Engineering teams do not fail releases because of one bug. They fail because the information is fragmented. Jira says one thing. Bitbucket says another. Confluence is out of date. And Compass knows the service is already struggling. ShipSignal brings all of that evidence together, so you can see the real readiness of a release before you ship it.

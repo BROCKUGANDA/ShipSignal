@@ -1,0 +1,1 @@
+Here is the product. The workspace overview shows active releases, critical risks, and open blockers in one place. Open a release and you get ten tabs, summary, readiness, timeline, issues, pull requests, dependencies, evidence, risks, approvals, and audit history. Every risk links back to the exact record that created it, with its source, its timestamp, and its freshness.

@@ -11,7 +11,9 @@ describe("input validation", () => {
     expect(r.releaseId).toBe("rel-1");
   });
   it("rejects unknown fields via strict", () => {
-    // schema not strict by default; just ensure parse doesn't crash
-    expect(() => GetReleaseReadinessRequestSchema.parse({ releaseId: "r", foo: "bar" })).not.toThrow();
+    expect(() => GetReleaseReadinessRequestSchema.parse({ releaseId: "r", foo: "bar" })).toThrow();
+  });
+  it("rejects invalid releaseId characters", () => {
+    expect(() => GetReleaseReadinessRequestSchema.parse({ releaseId: "bad id!" })).toThrow();
   });
 });

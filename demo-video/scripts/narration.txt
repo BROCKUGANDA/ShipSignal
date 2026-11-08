@@ -1,0 +1,23 @@
+01_hook.txt:
+Engineering teams do not fail releases because of one bug. They fail because the information is fragmented. Jira says one thing. Bitbucket says another. Confluence is out of date. And Compass knows the service is already struggling. ShipSignal brings all of that evidence together, so you can see the real readiness of a release before you ship it.
+
+02_intro.txt:
+This is ShipSignal, evidence-driven release intelligence for Atlassian. It is a real Forge application, deployed and installed on a live Atlassian site. It lives where your team already works, in Jira and Confluence, and it answers one question clearly. Is this release ready, and how do we know?
+
+03_architecture.txt:
+Under the hood, ShipSignal uses TypeScript and strict typing throughout. The frontend is a React Custom UI app. The backend uses Forge resolvers, Forge SQL for persistence, and Zod for validation. Every integration sits behind a small adapter interface, so Jira, Confluence, Compass, and Teamwork Graph can fail independently without breaking the product. The risk engine is deterministic. AI only explains the evidence. It never invents it.
+
+04_product.txt:
+Here is the product. The workspace overview shows active releases, critical risks, and open blockers in one place. Open a release and you get ten tabs, summary, readiness, timeline, issues, pull requests, dependencies, evidence, risks, approvals, and audit history. Every risk links back to the exact record that created it, with its source, its timestamp, and its freshness.
+
+05_risk.txt:
+The risk engine scores releases from documented rules. Unreviewed changes, missing documentation, and critical unresolved issues each add weight. If evidence is missing, the release is marked incomplete, never ready. Scores are transparent, versioned, and configurable. The dependency graph shows service topology, highlights critical paths, and surfaces missing or unverified relationships, never fabricated ones.
+
+06_agent_mcp.txt:
+ShipSignal also ships as an agent. The Rovo agent can answer, why is release two point four zero at risk, and cite the underlying evidence. The MCP server exposes the same capabilities as typed tools, get release readiness, get release blockers, get project health, and more. Read-only tools work independently. Mutations require authorization, validation, audit logging, and explicit confirmation.
+
+07_security.txt:
+Security and resilience are built in, not bolted on. Server-side authorization, tenant isolation, parameterized SQL, idempotent sync, exponential backoff with jitter, and a circuit breaker per provider. Sixteen automated tests cover the risk engine, retry logic, validation, circuit breaking, and API contracts. If AI is unavailable, the core product still works. If one integration fails, the dashboard still renders with partial results, clearly labeled.
+
+08_close.txt:
+ShipSignal makes release decisions more informed, explainable, and trustworthy. It does not guess. It shows its work. Thank you for watching. Try the live demo, ask the Rovo agent, call the MCP tools, and see the evidence for yourself.

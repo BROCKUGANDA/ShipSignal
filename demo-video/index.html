@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en" data-resolution="landscape">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=1920, height=1080" />
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/gsap.min.js"></script>
+<style>
+:root{
+  --ground:#151B2B; --panel:#1E293B; --ink:#FFFFFF; --muted:#CBD5E1;
+  --blue:#315CDE; --cyan:#20B8C5; --violet:#7867D5; --amber:#D99A35; --green:#34D399;
+  --font: system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{margin:0;width:1920px;height:1080px;overflow:hidden;background:var(--ground)}
+#root{width:1920px;height:1080px;position:relative;background:var(--ground);font-family:var(--font);color:var(--ink)}
+.clip{position:absolute;inset:0;width:1920px;height:1080px}
+.scene{width:1920px;height:1080px;padding:90px 110px;background:linear-gradient(135deg,#151B2B 0%,#1E2A4A 55%,#0F2A3D 100%)}
+.kicker{font-size:28px;letter-spacing:.35em;text-transform:uppercase;color:var(--cyan);font-weight:700}
+.title{font-size:92px;line-height:1.02;font-weight:800;letter-spacing:-.03em;margin-top:26px}
+.subtitle{font-size:38px;line-height:1.35;color:var(--muted);margin-top:26px;max-width:1500px}
+.grid{display:flex;gap:28px;margin-top:56px}
+.card{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);border-radius:20px;padding:32px;flex:1}
+.card h3{font-size:32px;margin-bottom:12px}
+.card p{font-size:26px;line-height:1.4;color:var(--muted)}
+.badge{display:inline-block;padding:10px 18px;border-radius:999px;font-size:24px;font-weight:700;background:var(--blue);color:#fff}
+.badge.c{background:var(--cyan);color:#06202A}.badge.v{background:var(--violet)}.badge.a{background:var(--amber);color:#2A1A00}.badge.g{background:var(--green);color:#052E1B}
+.metric{font-size:84px;font-weight:800;color:#fff}.metric span{font-size:34px;color:var(--cyan)}
+.footer{position:absolute;left:110px;right:110px;bottom:44px;display:flex;justify-content:space-between;font-size:24px;color:rgba(255,255,255,.55);letter-spacing:.12em;text-transform:uppercase}
+.accent{width:120px;height:8px;border-radius:99px;background:linear-gradient(90deg,var(--blue),var(--cyan),var(--violet));margin:30px 0}
+ul{margin-top:28px;list-style:none}
+li{font-size:32px;line-height:1.5;color:var(--muted);padding-left:36px;position:relative;margin-bottom:14px}
+li::before{content:"✓";position:absolute;left:0;color:var(--green);font-weight:800}
+</style>
+</head>
+<body>
+<div id="root" data-composition-id="main" data-start="0" data-duration="184.1" data-width="1920" data-height="1080">
+
+  <!-- SCENE 1 -->
+  <section class="clip" data-start="0" data-duration="20.9"><div class="scene">
+    <div class="kicker" id="k1">The Problem</div>
+    <div class="title" id="t1">Releases fail in the gaps.</div>
+    <div class="accent" id="a1"></div>
+    <div class="subtitle" id="s1">Jira, Bitbucket, Confluence and Compass each tell part of the story. ShipSignal brings the evidence together.</div>
+    <div class="grid"><div class="card" id="c1a"><h3>Jira</h3><p>“Ready” in the board</p></div><div class="card" id="c1b"><h3>Bitbucket</h3><p>PRs still unreviewed</p></div><div class="card" id="c1c"><h3>Confluence</h3><p>Runbook out of date</p></div><div class="card" id="c1d"><h3>Compass</h3><p>Service already degraded</p></div></div>
+    <div class="footer"><span>ShipSignal</span><span>Evidence &middot; Provenance &middot; Readiness</span></div>
+  </div></section>
+
+  <!-- SCENE 2 -->
+  <section class="clip" data-start="20.9" data-duration="19.6"><div class="scene">
+    <div class="kicker" id="k2">ShipSignal</div>
+    <div class="title" id="t2">Evidence-driven release intelligence.</div>
+    <div class="accent" id="a2"></div>
+    <div class="subtitle" id="s2">A real Forge app, installed on a live Atlassian site — in Jira and Confluence, where your team works.</div>
+    <div class="grid"><div class="card" id="c2a"><div class="metric">? <span>question</span></div><p>Is this release ready — and how do we know?</p></div><div class="card" id="c2b"><h3>Installed</h3><p>shipsignal.atlassian.net<br/>Jira + Confluence</p></div><div class="card" id="c2c"><h3>App ID</h3><p style="font-size:22px;word-break:break-all">6a5e2447-a58d-4cc4-8c56-12c73cb3b5a0</p></div></div>
+    <div class="footer"><span>ShipSignal</span><span>Atlassian Forge</span></div>
+  </div></section>
+
+  <!-- SCENE 3 -->
+  <section class="clip" data-start="40.5" data-duration="27.4"><div class="scene">
+    <div class="kicker" id="k3">Architecture</div>
+    <div class="title" id="t3">Deterministic core. Explainable AI.</div>
+    <div class="accent" id="a3"></div>
+    <div class="grid">
+      <div class="card" id="c3a"><h3>TypeScript</h3><p>Strict typing end to end. React Custom UI. Forge resolvers + Forge SQL. Zod validation.</p></div>
+      <div class="card" id="c3b"><h3>Adapters</h3><p>Jira &middot; Confluence &middot; Compass &middot; Teamwork Graph — independent failure, no cross-contamination.</p></div>
+      <div class="card" id="c3c"><h3>Risk engine</h3><p>Documented rules. AI explains evidence. It never invents it — and never changes a score.</p></div>
+    </div>
+    <div class="footer"><span>ShipSignal</span><span>Modular &middot; Observable &middot; Resilient</span></div>
+  </div></section>
+
+  <!-- SCENE 4 -->
+  <section class="clip" data-start="67.9" data-duration="23.1"><div class="scene">
+    <div class="kicker" id="k4">Product</div>
+    <div class="title" id="t4">Every release. Every risk. One place.</div>
+    <div class="accent" id="a4"></div>
+    <div class="subtitle" id="s4">Workspace overview, then ten tabs per release — each risk linked to its source record.</div>
+    <ul><li id="l4a">Summary &middot; Readiness &middot; Timeline</li><li id="l4b">Issues &middot; Pull requests &middot; Dependencies</li><li id="l4c">Evidence &middot; Risks &middot; Approvals &middot; Audit</li></ul>
+    <div class="footer"><span>ShipSignal</span><span>Provenance &middot; Freshness &middot; Audit</span></div>
+  </div></section>
+
+  <!-- SCENE 5 -->
+  <section class="clip" data-start="91" data-duration="26.3"><div class="scene">
+    <div class="kicker" id="k5">Risk Engine</div>
+    <div class="title" id="t5">Transparent scoring. No fake confidence.</div>
+    <div class="accent" id="a5"></div>
+    <div class="grid">
+      <div class="card" id="c5a"><div class="metric">+25</div><p>Unreviewed changes</p></div>
+      <div class="card" id="c5b"><div class="metric">+15</div><p>Missing documentation</p></div>
+      <div class="card" id="c5c"><div class="metric">+40</div><p>Critical unresolved issues</p></div>
+      <div class="card" id="c5d"><div class="metric" style="color:var(--amber)">?</div><p>No evidence &rarr; INCOMPLETE, never READY</p></div>
+    </div>
+    <div class="footer"><span>ShipSignal</span><span>Versioned &middot; Configurable &middot; Explainable</span></div>
+  </div></section>
+
+  <!-- SCENE 6 -->
+  <section class="clip" data-start="117.3" data-duration="25.5"><div class="scene">
+    <div class="kicker" id="k6">Agent + MCP</div>
+    <div class="title" id="t6">Ask it. Cite it. Automate it.</div>
+    <div class="accent" id="a6"></div>
+    <div class="grid">
+      <div class="card" id="c6a"><span class="badge">Rovo Agent</span><p style="margin-top:16px">“Why is 2.4.0 at risk?” — answered from evidence, not imagination.</p></div>
+      <div class="card" id="c6b"><span class="badge c">MCP Tools</span><p style="margin-top:16px">get_release_readiness &middot; get_release_blockers &middot; get_project_health &middot; +6 more</p></div>
+      <div class="card" id="c6c"><span class="badge v">Guardrails</span><p style="margin-top:16px">Mutations need auth, validation, audit, and explicit confirmation.</p></div>
+    </div>
+    <div class="footer"><span>ShipSignal</span><span>Best Rovo Agents &middot; Best Atlassian MCP</span></div>
+  </div></section>
+
+  <!-- SCENE 7 -->
+  <section class="clip" data-start="142.8" data-duration="31.6"><div class="scene">
+    <div class="kicker" id="k7">Security &amp; Resilience</div>
+    <div class="title" id="t7">Built in, not bolted on.</div>
+    <div class="accent" id="a7"></div>
+    <ul><li id="l7a">Server-side auth &middot; tenant isolation &middot; parameterized SQL &middot; idempotent sync</li><li id="l7b">Backoff with jitter &middot; circuit breaker per provider &middot; partial results, clearly labeled</li><li id="l7c">16 automated tests — risk, retry, validation, contracts &middot; AI down? Core still works.</li></ul>
+    <div class="footer"><span>ShipSignal</span><span>Forge SQL &middot; Zod &middot; Vitest</span></div>
+  </div></section>
+
+  <!-- SCENE 8 -->
+  <section class="clip" data-start="174.4" data-duration="9.7"><div class="scene" style="text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center">
+    <div class="kicker" id="k8">ShipSignal</div>
+    <div class="title" id="t8" style="font-size:110px">It doesn't guess.<br/>It shows its work.</div>
+    <div class="accent" id="a8" style="margin:36px 0"></div>
+    <div class="subtitle" id="s8" style="text-align:center">Try the live demo. Ask Rovo. Call the MCP tools. See the evidence.</div>
+    <div style="margin-top:40px"><span class="badge" id="b8">Atlassian Codegeist 2026</span></div>
+  </div></section>
+
+  <audio id="a01" src="assets/voice/01_hook.wav" data-start="0" data-duration="20.9" data-volume="1"></audio>
+  <audio id="a02" src="assets/voice/02_intro.wav" data-start="20.9" data-duration="19.6" data-volume="1"></audio>
+  <audio id="a03" src="assets/voice/03_architecture.wav" data-start="40.5" data-duration="27.4" data-volume="1"></audio>
+  <audio id="a04" src="assets/voice/04_product.wav" data-start="67.9" data-duration="23.1" data-volume="1"></audio>
+  <audio id="a05" src="assets/voice/05_risk.wav" data-start="91" data-duration="26.3" data-volume="1"></audio>
+  <audio id="a06" src="assets/voice/06_agent_mcp.wav" data-start="117.3" data-duration="25.5" data-volume="1"></audio>
+  <audio id="a07" src="assets/voice/07_security.wav" data-start="142.8" data-duration="31.6" data-volume="1"></audio>
+  <audio id="a08" src="assets/voice/08_close.wav" data-start="174.4" data-duration="9.7" data-volume="1"></audio>
+</div>
+<script>
+const tl = gsap.timeline({ paused: true });
+function reveal(ids, at){
+  ids.forEach((id,i)=>{ tl.fromTo("#"+id,{opacity:0,y:28},{opacity:1,y:0,duration:.6,ease:"power3.out"}, at + i*0.12); });
+}
+reveal(["k1","t1","a1","s1","c1a","c1b","c1c","c1d"], 0.3);
+reveal(["k2","t2","a2","s2","c2a","c2b","c2c"], 21.2);
+reveal(["k3","t3","a3","c3a","c3b","c3c"], 40.8);
+reveal(["k4","t4","a4","s4","l4a","l4b","l4c"], 68.2);
+reveal(["k5","t5","a5","c5a","c5b","c5c","c5d"], 91.3);
+reveal(["k6","t6","a6","c6a","c6b","c6c"], 117.6);
+reveal(["k7","t7","a7","l7a","l7b","l7c"], 143.1);
+reveal(["k8","t8","a8","s8","b8"], 174.7);
+window.__timelines["main"] = tl;
+tl.seek(0);
+</script>
+</body>
+</html>

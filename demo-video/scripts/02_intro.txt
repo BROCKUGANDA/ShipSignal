@@ -1,0 +1,1 @@
+This is ShipSignal, evidence-driven release intelligence for Atlassian. It is a real Forge application, deployed and installed on a live Atlassian site. It lives where your team already works, in Jira and Confluence, and it answers one question clearly. Is this release ready, and how do we know?

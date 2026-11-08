@@ -1,0 +1,1 @@
+ShipSignal makes release decisions more informed, explainable, and trustworthy. It does not guess. It shows its work. Thank you for watching. Try the live demo, ask the Rovo agent, call the MCP tools, and see the evidence for yourself.
