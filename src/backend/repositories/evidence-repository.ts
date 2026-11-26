@@ -55,6 +55,19 @@ export class EvidenceRepository {
     return result.rows ?? [];
   }
 
+  async listByWorkspaceIds(workspaceId: string, releaseIds: string[], limit = 500): Promise<EvidenceRow[]> {
+    if (releaseIds.length === 0) return [];
+    const marks = releaseIds.map(() => "?").join(",");
+    const result = await sql
+      .prepare<EvidenceRow>(
+        `SELECT id, workspace_id, source_platform, source_id, evidence_type, title, summary, retrieved_at, source_updated_at, freshness, release_id, source_url, content_hash
+         FROM evidence_records WHERE workspace_id = ? AND release_id IN (${marks}) ORDER BY retrieved_at DESC LIMIT ?`
+      )
+      .bindParams(workspaceId, ...releaseIds, limit)
+      .execute();
+    return result.rows ?? [];
+  }
+
   async listByRelease(workspaceId: string, releaseId: string, limit = 100): Promise<EvidenceRow[]> {
     const result = await sql
       .prepare<EvidenceRow>(
