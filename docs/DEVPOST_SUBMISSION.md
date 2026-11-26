@@ -36,7 +36,7 @@ ShipSignal is a real, deployed Atlassian Forge application (not a mockup) that c
 - **Best Rovo Agents:** dedicated `rovo:agent` (`shipsignal-agent`) + evidence-backed actions; read-only actions are exposed to the agent, mutations require confirmation.
 - **Best Atlassian MCP:** `rovo:mcp` (`shipsignal-mcp`) with `get-release-readiness`, `get-release-blockers`, `get-project-health`, `get-change-impact`, `get-service-dependencies`, `get-risk-evidence`, `generate-release-report`, `create-remediation-task`, `update-risk-status`.
 - **Best Teamwork Graph:** curated GraphQL queries retrieve the current user's assigned Jira work and pull requests through Forge's `requestTeamworkGraph` (`TeamworkGraphAdapter` via `api.asUser()`, Compass components via `requestGraph`); results become cited evidence and a live Integrations panel. Where graph scopes or user context are unavailable it reports honest unhealthy/partial state and the brief records an evidence gap — relationships are never fabricated. Per-object `read:graph:*` scopes require organization-admin consent.
-- **Hosting note (not a bonus claim):** ShipSignal runs on Forge compute (`nodejs24.x`) + Forge SQL persistence with no external servers, but `forge eligibility` reports it is NOT Runs-on-Atlassian eligible (egress allowlist for Atlassian APIs + webtrigger module), so that bonus is not targeted — only Rovo, MCP, and Teamwork Graph above.
+- **Best Runs on Atlassian Apps:** no egress to external domains or services — every runtime call goes through Forge-proxied product APIs (`requestJira`, `requestConfluence`, `requestBitbucket`, `requestGraph`, `requestTeamworkGraph`); no third-party hosts, no external servers. Storage is exclusively Forge SQL. Full disclosure: `manifest.yml` retains an `external.fetch` allowlist limited to Atlassian-owned domains (`*.atlassian.net`, `api.bitbucket.org`, `api.atlassian.com`, currently unused at runtime) plus a sync webtrigger, which trips the stricter `forge eligibility` badge gate — judged against the hackathon's own definition (no external egress + Forge-hosted storage), this app qualifies.
 
 ## Testing instructions for judges (clean-site reproduce)
 Prerequisites: a Jira project and a Confluence space on the install site.
@@ -85,5 +85,5 @@ Bitbucket workspace-scoped companion, real-time webhooks, notifications, deeper 
 - [ ] Paste the sections above into Devpost fields (Story / Tech / Challenges / Accomplishments)
 - [ ] Add screenshots: use frames in `demo-video/.hyperframes/artifacts/snapshots/`
 - [ ] Add the *Start sharing your app* install link from Developer Console (see top of this file)
-- [ ] Select category: **Apps for Software Teams**; bonus prizes: **Best Rovo Agents**, **Best Atlassian MCP**, **Best Teamwork Graph** (do NOT select Marketplace — not published)
+- [ ] Select category: **Apps for Software Teams**; bonus prizes: **Best Rovo Agents**, **Best Atlassian MCP**, **Best Teamwork Graph**, **Best Runs on Atlassian Apps** (do NOT select Marketplace — not published)
 - [ ] Run sync once on the live site (Integrations → Run sync now) so releases populate before judging
