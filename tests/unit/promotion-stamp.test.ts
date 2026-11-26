@@ -9,7 +9,8 @@ describe("promotion-stamp", () => {
   it("pipeline script writes exactly the contract stamp keys", () => {
     const src = fs.readFileSync("scripts/promotion-pipeline.mjs", "utf8");
     expect(src).toContain("dist/release/stamp.json");
-    const block = src.slice(src.indexOf("const stamp = {"), src.indexOf("});", src.indexOf("const stamp = {")));
+    const stampStart = src.indexOf("const stamp = {");
+    const block = src.slice(stampStart, src.indexOf("\n};", stampStart));
     expect(block.length).toBeGreaterThan(0);
     const keys = [...block.matchAll(/^\s*([A-Za-z_]+)\s*[:,]/gm)].map((m) => m[1]).sort();
     expect(keys).toEqual(["env", "sha", "timestamp", "version"]);
