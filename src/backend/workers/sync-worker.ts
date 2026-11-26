@@ -51,9 +51,12 @@ export class SyncWorker {
 
     const idem = new IdempotencyRepository();
     const syncKey = `sync-${new Date().toISOString().slice(0, 13)}`;
-    const first = await idem.claim(workspaceId, "sync", syncKey).catch(() => true);
-    if (!first)
-      return { workspaceId, sources: [], evidenceCount: 0, releasesUpserted: 0, warnings: ["Duplicate sync suppressed."], syncedAt: now };
+    const claimResult = await idem.claim(workspaceId, "sync", syncKey).catch(() => null);
+    if (claimResult === null) {
+      warnings.push("Idempotency check unavailable; proceeding without duplicate suppression.");
+    } else if (!claimResult) {
+      return { workspaceId, sources: [], evidenceCount: 0, releasesUpserted: 0, warnings: [...warnings, "Duplicate sync suppressed."], syncedAt: now };
+    }
 
     const jiraHealth = await this.jira.healthCheck();
     if (jiraHealth.healthy) {
@@ -234,6 +237,12 @@ export class SyncWorker {
     }
 
     await handleSyncEvent({ eventId: `sync-${workspaceId}-${now}`, workspaceId });
+
+    try {
+      await idem.complete(workspaceId, "sync", syncKey, JSON.stringify({ evidenceCount, releasesUpserted, syncedAt: now }));
+    } catch (error) {
+      console.error("[ShipSignal] idempotency complete failed", { workspaceId, syncKey, message: (error as Error).message });
+    }
 
     AuditService.record({
       id: `audit-sync-${Date.now()}`,
