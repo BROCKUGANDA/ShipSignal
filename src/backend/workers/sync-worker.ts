@@ -7,6 +7,8 @@ import { EvidenceRepository } from "../repositories/evidence-repository";
 import { ReleaseRepository } from "../repositories/release-repository";
 import { ensureMigrations } from "../database/migrations";
 import { handleSyncEvent } from "../events/sync-handler";
+import { IdempotencyRepository } from "../repositories/idempotency-repository";
+import { AuditService } from "../services/audit-service";
 
 export interface SyncResult {
   workspaceId: string;
@@ -46,6 +48,12 @@ export class SyncWorker {
     } catch (error) {
       warnings.push(`Database migrations failed: ${(error as Error).message}`);
     }
+
+    const idem = new IdempotencyRepository();
+    const syncKey = `sync-${new Date().toISOString().slice(0, 13)}`;
+    const first = await idem.claim(workspaceId, "sync", syncKey).catch(() => true);
+    if (!first)
+      return { workspaceId, sources: [], evidenceCount: 0, releasesUpserted: 0, warnings: ["Duplicate sync suppressed."], syncedAt: now };
 
     const jiraHealth = await this.jira.healthCheck();
     if (jiraHealth.healthy) {
@@ -226,6 +234,18 @@ export class SyncWorker {
     }
 
     await handleSyncEvent({ eventId: `sync-${workspaceId}-${now}`, workspaceId });
+
+    AuditService.record({
+      id: `audit-sync-${Date.now()}`,
+      workspaceId,
+      actorId: "system",
+      actorType: "SYSTEM",
+      operation: "SYNC_COMPLETED",
+      targetEntity: `workspace:${workspaceId}`,
+      result: "SUCCESS",
+      timestamp: now,
+      correlationId: `sync-${Date.now()}`,
+    });
 
     return {
       workspaceId,
