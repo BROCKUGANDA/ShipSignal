@@ -4,6 +4,7 @@ import { ReleaseService } from "./services/release-service";
 import { ReleaseRepository } from "./repositories/release-repository";
 import { EvidenceRepository } from "./repositories/evidence-repository";
 import { RiskStatusRepository } from "./repositories/risk-status-repository";
+import { WorkspaceInstallationRepository } from "./repositories/workspace-installation-repository";
 import { JiraAdapter } from "./integrations/jira-adapter";
 import { BitbucketAdapter } from "./integrations/bitbucket-adapter";
 import { ConfluenceAdapter } from "./integrations/confluence-adapter";
@@ -49,14 +50,29 @@ function cloudIdFromContext(context: unknown): string | undefined {
 }
 
 function define(key: string, fn: ResolverFn) {
-  handlers.set(key, fn);
-  resolver.define(key, fn);
+  const wrapped: ResolverFn = async (req) => {
+    // Every UI invocation carries cloudId; record it so the hourly scheduled
+    // trigger (which has only an installation id) can resolve the same workspace.
+    try {
+      const ctx = (req?.context ?? {}) as { cloudId?: string; installation?: { id?: string }; installationId?: string };
+      const installationId = ctx.installation?.id ?? ctx.installationId;
+      if (ctx.cloudId && installationId) {
+        await installationsRepo.remember(ctx.cloudId, installationId);
+      }
+    } catch {
+      // Never let bookkeeping break a resolver call.
+    }
+    return fn(req);
+  };
+  handlers.set(key, wrapped);
+  resolver.define(key, wrapped);
 }
 
 const releaseService = new ReleaseService();
 const releaseRepo = new ReleaseRepository();
 const evidenceRepo = new EvidenceRepository();
 const riskStatusRepo = new RiskStatusRepository();
+const installationsRepo = new WorkspaceInstallationRepository();
 const circuitBreakers = new Map<string, CircuitBreaker>();
 
 function breakerFor(dep: string) {
@@ -665,12 +681,46 @@ export async function webtriggerHandler(event: Record<string, unknown> = {}, con
 }
 
 export async function scheduledHandler(_event: Record<string, unknown> = {}, context: Record<string, unknown> = {}) {
-  const workspaceId = resolveWorkspaceId(context, {});
-  if (!workspaceId) return { success: false, error: "Workspace context required." };
   const worker = new SyncWorker();
-  // Scheduled triggers have no user identity; accountId stays undefined so the
-  // worker records Teamwork Graph as unavailable instead of impersonating.
-  return { success: true, data: await worker.run(workspaceId) };
+  const installations = new WorkspaceInstallationRepository();
+  const ctx = (context ?? {}) as { cloudId?: string; installation?: { id?: string }; installationId?: string };
+  const installationId = ctx.installation?.id ?? ctx.installationId;
+  const directWorkspace = resolveWorkspaceId(context, {});
+
+  // Scheduled triggers carry an installation id but no cloudId. Prefer a known
+  // cloudId for that installation, then fall back to the trigger context, then
+  // to every workspace we have seen from real user invocations.
+  let workspaceIds: string[] = [];
+  try {
+    if (installationId) {
+      const known = await installations.findCloudIdByInstallation(installationId);
+      if (known) workspaceIds.push(known);
+    }
+    if (workspaceIds.length === 0 && directWorkspace) workspaceIds.push(directWorkspace);
+    if (workspaceIds.length === 0) workspaceIds = await installations.listCloudIds(10);
+  } catch (error) {
+    console.error("[ShipSignal] scheduled workspace resolution failed", { message: (error as Error).message });
+    if (directWorkspace) workspaceIds = [directWorkspace];
+  }
+
+  if (workspaceIds.length === 0) {
+    return {
+      success: false,
+      error: "No workspace could be resolved for the scheduled sync. Open the ShipSignal panel once so the cloudId is recorded.",
+    };
+  }
+
+  const results = [];
+  for (const workspaceId of workspaceIds) {
+    try {
+      // Scheduled triggers have no user identity; accountId stays undefined so
+      // the worker records Teamwork Graph as unavailable instead of impersonating.
+      results.push(await worker.run(workspaceId));
+    } catch (error) {
+      results.push({ workspaceId, error: (error as Error).message });
+    }
+  }
+  return { success: true, data: results };
 }
 
 export const handler = resolver.getDefinitions();
