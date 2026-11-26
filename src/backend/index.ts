@@ -621,21 +621,55 @@ export async function actionHandler(payload: Record<string, unknown> = {}, conte
 }
 
 export async function webtriggerHandler(event: Record<string, unknown> = {}, context: Record<string, unknown> = {}) {
-  const eventContext = (event.context ?? {}) as Record<string, unknown>;
-  const cloudId = (context.cloudId ?? eventContext.cloudId ?? event.cloudId) as string | undefined;
-  const reqContext = cloudId ? { ...context, cloudId } : context;
-  const workspaceId = resolveWorkspaceId(reqContext, {});
-  if (!workspaceId) {
-    return { statusCode: 503, headers: { "Content-Type": "application/json" }, body: JSON.stringify({ success: false, error: "Workspace context required." }) };
+  const json = (statusCode: number, body: unknown) => ({
+    statusCode,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  try {
+    const eventContext = (event.context ?? {}) as Record<string, unknown>;
+    const queryParameters = (event.queryParameters ?? {}) as Record<string, string | string[] | undefined>;
+    const rawQueryCloudId = queryParameters.cloudId;
+    const queryCloudId = Array.isArray(rawQueryCloudId) ? rawQueryCloudId[0] : rawQueryCloudId;
+    const body = (event.body ?? "") as string;
+    let bodyCloudId: string | undefined;
+    if (typeof body === "string" && body.trim().startsWith("{")) {
+      try {
+        const parsed = JSON.parse(body) as { cloudId?: unknown; context?: { cloudId?: unknown } };
+        bodyCloudId =
+          (typeof parsed.cloudId === "string" && parsed.cloudId) ||
+          (typeof parsed.context?.cloudId === "string" ? parsed.context.cloudId : undefined);
+      } catch {
+        // ignore malformed bodies; cloudId will be resolved from context
+      }
+    }
+    const cloudId = (queryCloudId ?? bodyCloudId ?? context.cloudId ?? eventContext.cloudId ?? event.cloudId) as string | undefined;
+    const reqContext = cloudId ? { ...context, cloudId } : context;
+    const workspaceId = resolveWorkspaceId(reqContext, {});
+    if (!workspaceId) {
+      return json(400, {
+        success: false,
+        error: "Workspace context required. Call this trigger with ?cloudId=<site cloudId>.",
+        hint: "Find the cloudId in the app's installation context or in the site admin URL.",
+      });
+    }
+    const result = await handlers.get("syncProject")!({ payload: {}, context: reqContext });
+    return json(200, result);
+  } catch (error) {
+    return json(500, {
+      success: false,
+      error: (error as Error).message,
+      guidance: "Check forge logs for the correlation id; source failures are reported as warnings, not thrown.",
+    });
   }
-  const result = await handlers.get("syncProject")!({ payload: {}, context: reqContext });
-  return { statusCode: 200, headers: { "Content-Type": "application/json" }, body: JSON.stringify(result) };
 }
 
 export async function scheduledHandler(_event: Record<string, unknown> = {}, context: Record<string, unknown> = {}) {
   const workspaceId = resolveWorkspaceId(context, {});
   if (!workspaceId) return { success: false, error: "Workspace context required." };
   const worker = new SyncWorker();
+  // Scheduled triggers have no user identity; accountId stays undefined so the
+  // worker records Teamwork Graph as unavailable instead of impersonating.
   return { success: true, data: await worker.run(workspaceId) };
 }
 
