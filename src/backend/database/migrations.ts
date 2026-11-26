@@ -1,4 +1,4 @@
-import { migrationRunner } from "@forge/sql";
+import { migrationRunner, sql } from "@forge/sql";
 
 let initialized = false;
 let inFlight: Promise<{ ran: string[]; skipped: boolean }> | null = null;
@@ -141,10 +141,31 @@ export async function ensureMigrations(): Promise<{ ran: string[]; skipped: bool
   if (inFlight) return inFlight;
   inFlight = (async () => {
     await migrationRunner.initialize();
+    const ran: string[] = [];
     for (const m of MIGRATIONS) {
       migrationRunner.enqueue(m.name, m.statement);
     }
-    const ran = await migrationRunner.run();
+    try {
+      ran.push(...(await migrationRunner.run()));
+    } catch (error) {
+      // A single non-idempotent statement (e.g. CREATE INDEX on an index that
+      // already exists) used to abort the whole batch, leaving later tables
+      // missing and every resolver throwing INTERNAL_ERROR. Apply statements
+      // individually and tolerate "already exists" style failures.
+      console.error("[ShipSignal] migration batch failed, retrying statements individually", {
+        message: (error as Error).message,
+      });
+      for (const m of MIGRATIONS) {
+        try {
+          await sql.executeDDL(m.statement);
+          ran.push(m.name);
+        } catch (statementError) {
+          const msg = (statementError as Error).message ?? "";
+          if (/already exists|duplicate|1060|1061|1050/i.test(msg)) continue;
+          console.error("[ShipSignal] migration statement failed", { name: m.name, message: msg });
+        }
+      }
+    }
     initialized = true;
     return { ran, skipped: false };
   })();

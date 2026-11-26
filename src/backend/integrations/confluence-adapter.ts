@@ -4,7 +4,8 @@ import type { IntegrationProvider, HealthResult, Capability, ProviderResult, Pro
 export interface ConfluencePage {
   id: string;
   title: string;
-  version?: { when?: string; number?: number };
+  // v2 shape: version.createdAt / version.number (v1 used version.when)
+  version?: { when?: string; createdAt?: string; number?: number };
   _links?: { webui?: string; base?: string };
 }
 
@@ -14,7 +15,9 @@ export class ConfluenceAdapter implements IntegrationProvider {
   async connect() { return { success: true }; }
   async healthCheck(): Promise<HealthResult> {
     try {
-      const res = await api.asApp().requestConfluence(route`/wiki/rest/api/space?limit=1`);
+      // Confluence Cloud REST v1 space/content endpoints are sunset (410 Gone).
+      // v2 lives under /wiki/api/v2/.
+      const res = await api.asApp().requestConfluence(route`/wiki/api/v2/spaces?limit=1`);
       return { healthy: res.ok, message: res.ok ? "OK" : `HTTP ${res.status}`, checkedAt: new Date().toISOString() };
     } catch (e) {
       return { healthy: false, message: (e as Error).message, checkedAt: new Date().toISOString() };
@@ -25,9 +28,7 @@ export class ConfluenceAdapter implements IntegrationProvider {
   }
 
   async fetchPages(limit = 25): Promise<ConfluencePage[]> {
-    const res = await api.asApp().requestConfluence(
-      route`/wiki/rest/api/content?type=page&limit=${limit}&expand=version,history.lastUpdated&_=${Date.now()}`
-    );
+    const res = await api.asApp().requestConfluence(route`/wiki/api/v2/pages?limit=${limit}&body-format=storage`);
     if (!res.ok) return [];
     const body = (await res.json()) as { results?: ConfluencePage[] };
     return Array.isArray(body.results) ? body.results : [];
@@ -35,7 +36,7 @@ export class ConfluenceAdapter implements IntegrationProvider {
 
   async fetchPage<T>(request: ProviderRequest): Promise<ProviderResult<T>> {
     const limit = request.limit ?? 25;
-    const res = await api.asApp().requestConfluence(route`/wiki/rest/api/content?limit=${limit}&expand=${PAGE_FIELDS}`);
+    const res = await api.asApp().requestConfluence(route`/wiki/api/v2/pages?limit=${limit}`);
     if (!res.ok) {
       return { data: {} as T, source: "confluence", retrievedAt: new Date().toISOString(), partial: true, warnings: [`HTTP ${res.status}`] };
     }

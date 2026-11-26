@@ -38,6 +38,8 @@ export class SyncWorker {
   private releaseRepo = new ReleaseRepository();
 
   async run(workspaceId: string, accountId?: string): Promise<SyncResult> {
+    // Compass queries are cloudId-scoped; the workspace id IS the cloud id here.
+    this.compass = new CompassAdapter(workspaceId || undefined);
     const warnings: string[] = [];
     const sources: string[] = [];
     let evidenceCount = 0;
@@ -180,7 +182,7 @@ export class SyncWorker {
       try {
         const pages = await this.confluence.fetchPages(25);
         for (const page of pages) {
-          const updatedAt = page.version?.when;
+          const updatedAt = page.version?.createdAt ?? page.version?.when;
           const webui = page._links?.webui;
           const base = page._links?.base;
           await this.evidenceRepo.insert({
@@ -211,8 +213,10 @@ export class SyncWorker {
     if (compassHealth.healthy) {
       sources.push("compass");
       try {
-        const result = await this.compass.fetchPage<{ data?: { components?: { nodes?: Array<{ id: string; name: string }> } } }>({ workspaceId, limit: 25 });
-        for (const component of result.data?.data?.components?.nodes ?? []) {
+        const result = await this.compass.fetchPage<{ data?: { compass?: { searchComponents?: { nodes?: Array<{ component?: { id: string; name: string } | null }> } } } }>({ workspaceId, limit: 25 });
+        for (const node of result.data?.data?.compass?.searchComponents?.nodes ?? []) {
+          const component = node.component;
+          if (!component) continue;
           await this.evidenceRepo.insert({
             id: stableId("ev-compass-component", `${workspaceId}:${component.id}`),
             workspace_id: workspaceId,

@@ -23,12 +23,29 @@ export interface BitbucketPullRequest {
 
 export class BitbucketAdapter implements IntegrationProvider {
   async connect() { return { success: true }; }
+
+  // Bitbucket is only reachable from a Forge app holding Bitbucket product
+  // scopes (workspace-scoped). Site-scoped Jira/Confluence apps get
+  // INVALID_REMOTE from the Forge proxy; surface that honestly.
+  private static reason(res: { ok: boolean; status: number } | null, error?: unknown): string | null {
+    if (error) {
+      const msg = (error as Error).message ?? String(error);
+      if (/INVALID_REMOTE/i.test(msg)) {
+        return "Bitbucket needs a workspace-scoped app with repository scopes; this installation is site-scoped (Jira/Confluence).";
+      }
+      return `Bitbucket unavailable: ${msg}`;
+    }
+    if (res && !res.ok) return `HTTP ${res.status}`;
+    return null;
+  }
+
   async healthCheck(): Promise<HealthResult> {
     try {
-      const res = await api.asApp().requestBitbucket(route`/2.0/user`);
-      return { healthy: res.ok, message: res.ok ? "OK" : `HTTP ${res.status}`, checkedAt: new Date().toISOString() };
+      const res = await api.asApp().requestBitbucket(route`/2.0/repositories?pagelen=1&role=member`);
+      const reason = BitbucketAdapter.reason(res);
+      return { healthy: reason === null, message: reason ?? "OK", checkedAt: new Date().toISOString() };
     } catch (e) {
-      return { healthy: false, message: (e as Error).message, checkedAt: new Date().toISOString() };
+      return { healthy: false, message: BitbucketAdapter.reason(null, e) ?? "Bitbucket unavailable.", checkedAt: new Date().toISOString() };
     }
   }
   async getCapabilities(): Promise<Capability[]> {

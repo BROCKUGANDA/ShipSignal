@@ -151,8 +151,19 @@ export class TeamworkGraphAdapter implements IntegrationProvider {
     );
     const payload = (await res.json()) as GraphPayload;
     const error = graphError(payload);
-    if (!res.ok || error) throw new Error(error ?? `Teamwork Graph HTTP ${res.status}`);
+    if (!res.ok || error) throw new Error(this.explainError(error ?? `Teamwork Graph HTTP ${res.status}`));
     return mapTeamworkGraphSnapshot(payload, this.accountId);
+  }
+
+  /** Turn platform consent errors into an actionable message for judges. */
+  private explainError(message: string): string {
+    if (/NO_IMPERSONATION_SCOPES_DEFINED/i.test(message)) {
+      return "Teamwork Graph scopes (read:graph:user:atlassian, read:graph:issue:jira, read:graph:pull-request:external) have not been granted for this installation. An organization admin must approve the graph scopes in the app's installation settings.";
+    }
+    if (/not installed|no access|FORBIDDEN/i.test(message)) {
+      return `Teamwork Graph access denied: ${message}`;
+    }
+    return message;
   }
 
   async healthCheck(): Promise<HealthResult> {

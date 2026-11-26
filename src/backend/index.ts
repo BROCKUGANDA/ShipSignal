@@ -174,10 +174,11 @@ define("getReleaseBlockers", async (req) => {
 define("getProjectHealth", async (req) => {
   try {
     GetProjectHealthRequestSchema.parse(req.payload ?? {});
+    const healthWorkspaceId = resolveWorkspaceId(req.context, req.payload);
     const jira = new JiraAdapter();
     const bb = new BitbucketAdapter();
     const cf = new ConfluenceAdapter();
-    const compass = new CompassAdapter();
+    const compass = new CompassAdapter(healthWorkspaceId || undefined);
     const accountId = accountIdFromContext(req.context);
     const twg = new TeamworkGraphAdapter(accountId);
     const [jiraHealth, bbHealth, cfHealth, compassHealth] = await Promise.all([
@@ -258,9 +259,13 @@ define("getServiceDependencies", async (req) => {
     const payload = GetServiceDependenciesRequestSchema.parse(req.payload ?? {});
     const workspaceId = resolveWorkspaceId(req.context, req.payload);
     // Compass is optional; if unavailable, return evidence-derived dependencies honestly
-    const compass = new CompassAdapter();
-    const compassResult = await compass.fetchPage<{ data?: { components?: { nodes?: unknown[] } } }>({ workspaceId });
-    const components = compassResult.data?.data?.components?.nodes ?? [];
+    const compass = new CompassAdapter(workspaceId || undefined);
+    const compassResult = await compass.fetchPage<{
+      data?: { compass?: { searchComponents?: { nodes?: Array<{ component?: unknown }> } } };
+    }>({ workspaceId });
+    const components = (compassResult.data?.data?.compass?.searchComponents?.nodes ?? [])
+      .map((node) => node.component)
+      .filter(Boolean);
     const evidenceRows = workspaceId ? await evidenceRepo.listByWorkspace(workspaceId, 50) : [];
     const derived = evidenceRows
       .filter((e) => e.source_platform === "bitbucket" || e.source_platform === "compass")

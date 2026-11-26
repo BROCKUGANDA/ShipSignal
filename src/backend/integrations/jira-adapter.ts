@@ -36,7 +36,9 @@ export class JiraAdapter implements IntegrationProvider {
 
   async healthCheck(): Promise<HealthResult> {
     try {
-      const res = await api.asApp().requestJira(route`/rest/api/3/myself`);
+      // NOTE: /rest/api/3/myself requires a *user* identity and always yields
+      // 401 under api.asApp(). Use an app-scoped read instead.
+      const res = await api.asApp().requestJira(route`/rest/api/3/project/search?maxResults=1`);
       return { healthy: res.ok, message: res.ok ? "OK" : `HTTP ${res.status}`, checkedAt: new Date().toISOString() };
     } catch (e) {
       return { healthy: false, message: (e as Error).message, checkedAt: new Date().toISOString() };
@@ -68,8 +70,9 @@ export class JiraAdapter implements IntegrationProvider {
 
   async fetchIssuesForVersion(versionName: string, limit = 50): Promise<JiraIssue[]> {
     const jql = encodeURIComponent(`fixVersion = "${versionName.replace(/"/g, '\\"')}" ORDER BY priority DESC`);
+    // /rest/api/3/search is sunset for many tenants (410 Gone); /search/jql is the replacement.
     const res = await api.asApp().requestJira(
-      route`/rest/api/3/search?jql=${jql}&maxResults=${limit}&fields=summary,status,priority,issuetype,updated`
+      route`/rest/api/3/search/jql?jql=${jql}&maxResults=${limit}&fields=summary,status,priority,issuetype,updated`
     );
     if (!res.ok) return [];
     const json = (await res.json()) as { issues?: JiraIssue[] };
