@@ -117,6 +117,10 @@ a { color: var(--accent); }
 .panel h3 { margin: 0 0 10px; font-size: 14px; }
 .empty { border: 1px dashed var(--line-strong); border-radius: 10px; padding: 28px; text-align: center; color: var(--muted); }
 .error { border: 1px solid #f3b6b0; background: #fef3f2; color: var(--red); border-radius: 9px; padding: 13px 15px; font-size: 13px; }
+/* Flagship verdict banner (additive; does not alter .verdict detail card above) */
+.verdict-banner { border-left: 4px solid var(--ink); padding: 10px 14px; border-radius: 8px; background: var(--card); margin-bottom: 14px; box-shadow: var(--shadow); }
+.verdict-HOLD { border-color: #c00; } .verdict-SHIP { border-color: #0a0; }
+.verdict-SHIP_WITH_GUARDRAILS { border-color: #e80; } .verdict-INSUFFICIENT_EVIDENCE { border-color: #888; }
 @media (max-width: 900px) {
   .app-shell { display: block; }
   .sidebar { position: static; width: auto; height: auto; padding: 14px; }

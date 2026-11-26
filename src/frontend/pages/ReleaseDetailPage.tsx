@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { PageHeader, LoadingState, ErrorState, EmptyState, StatusPill, FreshnessChip } from "../components/Common";
+import { PageHeader, LoadingState, ErrorState, EmptyState, StatusPill, FreshnessChip, VerdictBanner } from "../components/Common";
 import { useResolver } from "../hooks/useResolver";
 
 interface EvidenceItem {
@@ -145,7 +145,15 @@ export default function ReleaseDetailPage() {
       "",
       `Policy: ${brief.policyVersion} · Assessed: ${data.assessedAt}`,
     ].join("\n");
-    await navigator.clipboard.writeText(text);
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      try {
+        window.prompt("Copy the decision brief:", text);
+      } catch {
+        return;
+      }
+    }
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1800);
   };
@@ -208,6 +216,12 @@ export default function ReleaseDetailPage() {
 
       {!readiness.loading && !readiness.error && data ? (
         <>
+          <VerdictBanner
+            verdict={verdict}
+            confidence={brief?.confidence ?? 0}
+            riskScore={brief?.riskScore ?? data.riskScore}
+            policyVersion={brief?.policyVersion ?? "unknown"}
+          />
           <section className="card verdict">
             <div className="verdict-main">
               <div className="eyebrow">Release verdict</div>
