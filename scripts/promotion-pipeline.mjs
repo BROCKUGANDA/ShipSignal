@@ -55,15 +55,13 @@ for (const r of required) {
   console.log(`OK manifest contains ${r}`);
 }
 
-// 6. Artifact stamp
+// 6. Artifact stamp — shape is contract: { version, sha, env, timestamp }
 mkdirSync("dist/release", { recursive: true });
 const stamp = {
-  app: "ShipSignal",
   version: pkg.version,
-  environment: env,
-  gitSha: (() => { try { return execSync("git rev-parse HEAD", { encoding: "utf-8" }).trim(); } catch { return "unknown"; } })(),
-  builtAt: new Date().toISOString(),
-  manifestSha: Buffer.from(manifest).toString("base64").slice(0, 32),
+  sha: (() => { try { return execSync("git rev-parse HEAD", { encoding: "utf-8" }).trim(); } catch { return "unknown"; } })(),
+  env,
+  timestamp: new Date().toISOString(),
 };
 writeFileSync("dist/release/stamp.json", JSON.stringify(stamp, null, 2));
 console.log("\nRelease stamp written to dist/release/stamp.json");
