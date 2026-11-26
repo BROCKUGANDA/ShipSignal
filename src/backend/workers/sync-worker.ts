@@ -66,8 +66,14 @@ export class SyncWorker {
       sources.push("jira");
       try {
         const projects = await this.jira.fetchProjects(10);
+        if (projects.length === 0) {
+          warnings.push("Jira returned no projects for this app identity; no releases can be created.");
+        }
         for (const project of projects) {
           const versions = await this.jira.fetchVersions(project.id);
+          if (versions.length === 0) {
+            warnings.push(`Jira project ${project.key} has no versions (releases are derived from Jira versions).`);
+          }
           for (const version of versions.slice(0, 10)) {
             const releaseId = stableId("rel", `${workspaceId}:${project.key}:${version.id}`);
             await this.releaseRepo.upsert({
