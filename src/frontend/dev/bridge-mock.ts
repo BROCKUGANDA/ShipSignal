@@ -141,7 +141,20 @@ const health = {
   bitbucket: { healthy: true, message: "OK", checkedAt: now },
   confluence: { healthy: true, message: "OK", checkedAt: now },
   compass: { healthy: false, message: "Compass API preview unavailable; service evidence is partial.", checkedAt: now },
-  teamworkGraph: { healthy: true, message: "OK", checkedAt: now },
+  teamworkGraph: {
+    healthy: true,
+    message: "Connected as current user; 2 assigned work item(s), 1 pull request(s) returned.",
+    checkedAt: now,
+    workItemCount: 2,
+    pullRequestCount: 1,
+    assignedWork: [
+      { id: "ari:cloud:jira::issue/1", key: "PAY-412", summary: "Retry ledger reconciliation on timeout", dueAt: "2026-11-29", webUrl: "https://example.atlassian.net/browse/PAY-412", issueType: "Bug" },
+      { id: "ari:cloud:jira::issue/2", key: "PAY-419", summary: "Add settlement audit trail", webUrl: "https://example.atlassian.net/browse/PAY-419", issueType: "Story" },
+    ],
+    pullRequests: [
+      { id: "ari:cloud:bitbucket::pr/1", displayId: "184", title: "PAY-412 retry reconciliation", status: "OPEN", url: "https://bitbucket.org/example/payments/pull-requests/184" },
+    ],
+  },
   overall: false,
   healthySources: 4,
   totalSources: 5,
@@ -168,7 +181,7 @@ export async function invoke(key: string, payload?: Record<string, unknown>) {
     case "listAuditEvents":
       return { success: true, data: audit };
     case "syncProject":
-      return { success: true, data: { workspaceId: "demo", sources: ["jira", "bitbucket", "confluence"], evidenceCount: 4, releasesUpserted: 3, warnings: ["Compass is unavailable in this preview."], syncedAt: now } };
+      return { success: true, data: { workspaceId: "demo", sources: ["jira", "bitbucket", "confluence", "teamwork-graph"], evidenceCount: 7, releasesUpserted: 3, warnings: ["Compass is unavailable in this preview."], syncedAt: now } };
     default:
       return { success: false, error: { message: `Preview has no handler for ${key}` } };
   }

@@ -8,6 +8,35 @@ interface HealthEntry {
   checkedAt?: string;
 }
 
+interface GraphWorkItem {
+  id: string;
+  key?: string;
+  summary?: string;
+  resolvedAt?: string;
+  dueAt?: string;
+  webUrl?: string;
+  issueType?: string;
+}
+
+interface GraphPullRequest {
+  id: string;
+  title?: string;
+  displayId?: string;
+  status?: string;
+  url?: string;
+}
+
+interface GraphHealth extends HealthEntry {
+  workItemCount?: number;
+  pullRequestCount?: number;
+  assignedWork?: GraphWorkItem[];
+  pullRequests?: GraphPullRequest[];
+}
+
+interface HealthData extends Record<string, HealthEntry> {
+  teamworkGraph?: GraphHealth;
+}
+
 interface SyncResult {
   sources?: string[];
   evidenceCount?: number;
@@ -17,7 +46,7 @@ interface SyncResult {
 }
 
 export default function IntegrationsPage() {
-  const { data, loading, error, call } = useResolver<Record<string, HealthEntry>>("getProjectHealth");
+  const { data, loading, error, call } = useResolver<HealthData>("getProjectHealth");
   const { data: syncData, loading: syncLoading, error: syncError, call: syncCall } = useResolver<SyncResult>("syncProject");
 
   useEffect(() => {
@@ -60,6 +89,40 @@ export default function IntegrationsPage() {
         </div>
       ) : null}
       {!loading && !error && !data ? <EmptyState title="No integration status" description="Open this page from the installed Forge app." /> : null}
+
+      {!loading && !error && data?.teamworkGraph?.healthy ? (
+        <>
+          <div className="section-title">Teamwork Graph context</div>
+          <div className="split">
+            <div className="card panel">
+              <h3>Assigned work · {data.teamworkGraph.workItemCount ?? 0}</h3>
+              {data.teamworkGraph.assignedWork?.length ? (
+                <ul className="list">
+                  {data.teamworkGraph.assignedWork.map((item) => (
+                    <li key={item.id}>
+                      {item.webUrl ? <a href={item.webUrl} target="_blank" rel="noreferrer">{item.key ?? item.summary ?? item.id}</a> : (item.key ?? item.summary ?? item.id)}
+                      <span className="muted"> · {item.resolvedAt ? "resolved" : "open"}{item.dueAt ? ` · due ${new Date(item.dueAt).toLocaleDateString()}` : ""}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : <p className="muted" style={{ margin: 0 }}>No assigned work items returned for this user.</p>}
+            </div>
+            <div className="card panel">
+              <h3>Pull requests · {data.teamworkGraph.pullRequestCount ?? 0}</h3>
+              {data.teamworkGraph.pullRequests?.length ? (
+                <ul className="list">
+                  {data.teamworkGraph.pullRequests.map((pr) => (
+                    <li key={pr.id}>
+                      {pr.url ? <a href={pr.url} target="_blank" rel="noreferrer">{pr.title ?? pr.displayId ?? pr.id}</a> : (pr.title ?? pr.displayId ?? pr.id)}
+                      <span className="muted"> · {pr.status?.toLowerCase() ?? "unknown"}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : <p className="muted" style={{ margin: 0 }}>No pull requests returned for this user.</p>}
+            </div>
+          </div>
+        </>
+      ) : null}
 
       <div className="section-title">Synchronization</div>
       <div className="card panel">

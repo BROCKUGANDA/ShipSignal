@@ -180,13 +180,30 @@ define("getProjectHealth", async (req) => {
     const compass = new CompassAdapter();
     const accountId = accountIdFromContext(req.context);
     const twg = new TeamworkGraphAdapter(accountId);
-    const [jiraHealth, bbHealth, cfHealth, compassHealth, twgHealth] = await Promise.all([
+    const [jiraHealth, bbHealth, cfHealth, compassHealth] = await Promise.all([
       breakerFor("jira").execute(() => jira.healthCheck()),
       breakerFor("bitbucket").execute(() => bb.healthCheck()),
       breakerFor("confluence").execute(() => cf.healthCheck()),
       compass.healthCheck(),
-      twg.healthCheck(),
     ]);
+    let twgHealth;
+    let twgSummary;
+    try {
+      const snapshot = await twg.inspect(10);
+      twgHealth = {
+        healthy: true,
+        message: `Connected as current user; ${snapshot.workItems.length} assigned work item(s), ${snapshot.pullRequests.length} pull request(s) returned.`,
+        checkedAt: snapshot.checkedAt,
+      };
+      twgSummary = {
+        workItemCount: snapshot.workItems.length,
+        pullRequestCount: snapshot.pullRequests.length,
+        assignedWork: snapshot.workItems.slice(0, 5),
+        pullRequests: snapshot.pullRequests.slice(0, 5),
+      };
+    } catch (error) {
+      twgHealth = { healthy: false, message: (error as Error).message, checkedAt: new Date().toISOString() };
+    }
     const healthEntries = [jiraHealth, bbHealth, cfHealth, compassHealth, twgHealth];
     const healthySources = healthEntries.filter((entry) => entry.healthy).length;
     return {
@@ -196,7 +213,7 @@ define("getProjectHealth", async (req) => {
         bitbucket: bbHealth,
         confluence: cfHealth,
         compass: compassHealth,
-        teamworkGraph: twgHealth,
+        teamworkGraph: { ...twgHealth, ...twgSummary },
         overall: healthySources === healthEntries.length,
         healthySources,
         totalSources: healthEntries.length,
@@ -472,7 +489,7 @@ define("syncProject", async (req) => {
     const workspaceId = resolveWorkspaceId(req.context, req.payload);
     if (!workspaceId) return { success: false, error: { code: "AUTHENTICATION_ERROR" as const, message: "Workspace context required.", retryable: false, correlationId: correlationIdFromRequest(req) } };
     const worker = new SyncWorker();
-    const result = await worker.run(workspaceId);
+    const result = await worker.run(workspaceId, accountIdFromContext(req.context));
     return { success: true, data: result };
   } catch (error) {
     return errorResponse(error, req);

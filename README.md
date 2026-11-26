@@ -71,7 +71,7 @@ Rovo Agent / MCP (rovo:agent, rovo:mcp)
 - **Backend:** split Forge entrypoints for the UI resolver, Rovo actions, scheduled trigger, and webtrigger; services, repositories, workers, security (retry, circuit breaker, durable audit).
 - **Domain:** `src/domain/` — typed evidence references, deterministic risk policy, release brief.
 - **Security:** server-side authz, tenant isolation from Forge `cloudId`/installation context (payload tenant IDs are never trusted), strict Zod inputs, least-privilege scopes, no secrets in repo.
-- **Teamwork Graph:** adapter included, but graph scopes are restricted for this app; it reports an honest unhealthy/partial state rather than fabricating relationships.
+- **Teamwork Graph:** consumes curated GraphQL queries (`atlassianUserAssignedJiraWorkItems`, `atlassianUserPullRequests`) through `api.asUser().requestTeamworkGraph`, then stores the results as cited evidence and shows them in Integrations. The three per-object scopes must be granted by an organization admin at install time.
 
 Details: [`docs/architecture.md`](docs/architecture.md) · [`docs/rovo-mcp.md`](docs/rovo-mcp.md).
 
@@ -137,7 +137,7 @@ forge lint
 | `npm run build:backend` | PASS |
 | `forge lint` | PASS |
 
-See [`docs/PRODUCTION_READINESS.md`](docs/PRODUCTION_READINESS.md) for remaining limitations (Compass API preview, Teamwork Graph scope restriction, in-memory sync-event idempotency, release provisioning).
+See [`docs/PRODUCTION_READINESS.md`](docs/PRODUCTION_READINESS.md) for remaining limitations (Compass API preview, in-memory sync-event idempotency, release provisioning).
 
 ## Documentation
 

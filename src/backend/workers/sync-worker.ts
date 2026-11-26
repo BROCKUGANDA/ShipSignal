@@ -3,6 +3,7 @@ import { JiraAdapter } from "../integrations/jira-adapter";
 import { BitbucketAdapter } from "../integrations/bitbucket-adapter";
 import { ConfluenceAdapter } from "../integrations/confluence-adapter";
 import { CompassAdapter } from "../integrations/compass-adapter";
+import { TeamworkGraphAdapter } from "../integrations/teamwork-graph-adapter";
 import { EvidenceRepository } from "../repositories/evidence-repository";
 import { ReleaseRepository } from "../repositories/release-repository";
 import { ensureMigrations } from "../database/migrations";
@@ -34,7 +35,7 @@ export class SyncWorker {
   private evidenceRepo = new EvidenceRepository();
   private releaseRepo = new ReleaseRepository();
 
-  async run(workspaceId: string): Promise<SyncResult> {
+  async run(workspaceId: string, accountId?: string): Promise<SyncResult> {
     const warnings: string[] = [];
     const sources: string[] = [];
     let evidenceCount = 0;
@@ -223,6 +224,56 @@ export class SyncWorker {
       }
     } else {
       warnings.push(`Compass unavailable: ${compassHealth.message ?? "unknown"}`);
+    }
+
+    if (accountId) {
+      const twg = new TeamworkGraphAdapter(accountId);
+      try {
+        const snapshot = await twg.inspect(25);
+        sources.push("teamwork-graph");
+        for (const item of snapshot.workItems) {
+          const sourceId = item.key ?? item.id;
+          await this.evidenceRepo.insert({
+            id: stableId("ev-twg-work", `${workspaceId}:${item.id}:${item.resolvedAt ?? item.dueAt ?? ""}`),
+            workspace_id: workspaceId,
+            source_platform: "teamwork-graph",
+            source_id: sourceId,
+            evidence_type: "graph_work_item",
+            title: item.key ? `${item.key}: ${item.summary ?? "Untitled work item"}` : item.summary ?? "Teamwork Graph work item",
+            summary: `type=${item.issueType ?? "unknown"}; resolved=${item.resolvedAt ?? "open"}; due=${item.dueAt ?? "none"}; source=teamwork-graph`,
+            retrieved_at: snapshot.checkedAt,
+            source_updated_at: item.resolvedAt ?? item.dueAt ?? null,
+            freshness: freshnessFor(item.resolvedAt ?? item.dueAt),
+            release_id: null,
+            source_url: item.webUrl ?? null,
+            content_hash: hash(`${workspaceId}:teamwork-graph:work:${item.id}:${item.resolvedAt ?? "open"}:${item.dueAt ?? ""}`),
+          });
+          evidenceCount += 1;
+        }
+        for (const pr of snapshot.pullRequests) {
+          await this.evidenceRepo.insert({
+            id: stableId("ev-twg-pr", `${workspaceId}:${pr.id}:${pr.lastUpdatedAt ?? ""}`),
+            workspace_id: workspaceId,
+            source_platform: "teamwork-graph",
+            source_id: pr.displayId ?? pr.id,
+            evidence_type: "graph_pull_request",
+            title: pr.title ?? `Pull request ${pr.displayId ?? pr.id}`,
+            summary: `state=${pr.status ?? "unknown"}; source=teamwork-graph`,
+            retrieved_at: snapshot.checkedAt,
+            source_updated_at: pr.lastUpdatedAt ?? null,
+            freshness: freshnessFor(pr.lastUpdatedAt),
+            release_id: null,
+            source_url: pr.url ?? null,
+            content_hash: hash(`${workspaceId}:teamwork-graph:pr:${pr.id}:${pr.status ?? ""}:${pr.lastUpdatedAt ?? ""}`),
+          });
+          evidenceCount += 1;
+        }
+        if (snapshot.workItems.length === 0 && snapshot.pullRequests.length === 0) {
+          warnings.push("Teamwork Graph returned no work items or pull requests; an organization admin may not have granted the read:graph scopes for this installation.");
+        }
+      } catch (error) {
+        warnings.push(`Teamwork Graph unavailable: ${(error as Error).message}`);
+      }
     }
 
     await handleSyncEvent({ eventId: `sync-${workspaceId}-${now}`, workspaceId });

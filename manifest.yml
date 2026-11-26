@@ -224,6 +224,9 @@ permissions:
     - read:confluence-content.all
     - read:confluence-space.summary
     - read:component:compass
+    - read:graph:user:atlassian
+    - read:graph:issue:jira
+    - read:graph:pull-request:external
     - storage:app
   external:
     fetch:

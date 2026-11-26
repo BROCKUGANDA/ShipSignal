@@ -11,14 +11,14 @@
 4. Open **Checks**: review readiness, critical issues, freshness, coverage, and documentation — each check cites its records.
 5. Open **Evidence**: filter by source/freshness, open a Jira/Bitbucket/Confluence source link.
 6. Open **Risks** and **Audit**: cited blockers and durable decision records.
-7. Run **Integrations → Run sync now**: release-scoped Jira issues, Confluence pages, Bitbucket PRs, and Compass components.
+7. Run **Integrations → Run sync now**: release-scoped Jira issues, Confluence pages, Bitbucket PRs, Compass components, and Teamwork Graph assigned work/PRs. The Teamwork Graph panel shows the live curated-query result.
 8. Ask Rovo: *"Why is release 2.4.0 at risk?"* Invoke MCP `get-release-readiness`.
 9. Show that a missing source becomes an evidence gap, never invented data.
 
 ## Bonus prizes targeted
 - **Best Rovo Agents:** dedicated `rovo:agent` with evidence-backed read actions; mutations require explicit confirmation.
 - **Best Atlassian MCP:** 9 typed tools via `rovo:mcp`.
-- **Teamwork Graph:** adapter present; graph scopes are restricted for this app, so it reports an honest unhealthy/partial state. Not claimed as a working bonus integration.
+- **Teamwork Graph:** consumes the supported curated GraphQL queries for the current user's assigned Jira work and pull requests, stores that context as cited evidence, and renders it in Integrations. Scopes are per object type and require organization-admin consent.
 
 ## Verification
 - `npm run typecheck`, `npm run build`, `npm run build:backend`, `npm test` (41/41)

@@ -26,12 +26,12 @@ ShipSignal is a real, deployed Atlassian Forge application (not a mockup) that c
 - Risk register with factor confidence and explicit human-verification flags
 - Rovo Agent: evidence-grounded Q&A ("Why is 2.4.0 at risk?")
 - MCP server: 9 typed tools; mutations require explicit confirmation
-- Sync worker: release-scoped Jira issues, Confluence pages, Bitbucket PRs, Compass components; content-hash dedupe; partial results; durable audit
+- Sync worker: release-scoped Jira issues, Confluence pages, Bitbucket PRs, Compass components, and Teamwork Graph assigned work/PRs; content-hash dedupe; partial results; durable audit
 
 ### Bonus prizes targeted
 - **Best Rovo Agents:** dedicated `rovo:agent` + evidence-backed actions; read-only actions are exposed to the agent, mutations require confirmation.
 - **Best Atlassian MCP:** `rovo:mcp` with `get-release-readiness`, `get-release-blockers`, `get-project-health`, `get-change-impact`, `get-service-dependencies`, `get-risk-evidence`, `generate-release-report`, `create-remediation-task`, `update-risk-status`.
-- **Teamwork Graph:** adapter included with honest fallback when graph scopes are unavailable; not claimed as a working bonus integration for this listing.
+- **Teamwork Graph:** curated GraphQL queries retrieve the current user's assigned Jira work and pull requests through Forge's `requestTeamworkGraph`; results become cited evidence and a live Integrations panel. Per-object `read:graph:*` scopes require organization-admin consent.
 
 ## How this meets the Forge requirement
 ShipSignal is a deployed Forge app (`nodejs24.x`) with Jira project-page and Confluence space-page Custom UI, a UI resolver, a Rovo agent, a Rovo MCP server, scheduled reconciliation, a webtrigger, Forge SQL persistence, and least-privilege Atlassian scopes. It uses Jira, Confluence, Compass, and Bitbucket context; when a source is unavailable, the readiness brief records an evidence gap rather than inventing the missing fact.

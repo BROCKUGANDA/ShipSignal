@@ -11,11 +11,12 @@
 
 ## Data flow
 
-1. Sync creates releases from Jira versions and structured evidence from Jira issues, Confluence pages, Bitbucket PRs, and Compass components.
-2. Evidence rows carry source platform, source ID, source URL, retrieval/update time, freshness, release linkage, and a content hash for dedupe.
-3. The risk engine derives signals only from those records and emits cited factors.
-4. The release brief adds verdict, confidence, checks, evidence gaps, and next actions.
-5. UI, Rovo agent, and MCP tools read the same assessment service. Mutations are separate, confirmed, and audited.
+1. Sync creates releases from Jira versions and structured evidence from Jira issues, Confluence pages, Bitbucket PRs, Compass components, and Teamwork Graph assigned work/pull requests.
+2. Teamwork Graph calls use curated GraphQL fields through `api.asUser().requestTeamworkGraph`; no raw Cypher is sent. Results are stored with source `teamwork-graph` and shown in Integrations.
+3. Evidence rows carry source platform, source ID, source URL, retrieval/update time, freshness, release linkage, and a content hash for dedupe.
+4. The risk engine derives signals only from those records and emits cited factors.
+5. The release brief adds verdict, confidence, checks, evidence gaps, and next actions.
+6. UI, Rovo agent, and MCP tools read the same assessment service. Mutations are separate, confirmed, and audited.
 
 ## Key Principles
 

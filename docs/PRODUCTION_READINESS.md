@@ -47,10 +47,11 @@
 ## Known Limitations
 
 1. **Compass API** — preview API behavior varies; failures are labelled partial rather than replaced with invented data.
-2. **Teamwork Graph** — graph scopes are restricted for this app; adapter reports an honest unhealthy/partial state. Full ingestion requires an approved scope grant.
-3. **Sync-event idempotency** — the event marker is still process-local; evidence itself is deduplicated durably by content hash.
-4. **Release provisioning** — releases are created from Jira versions during sync; there is no UI to create a release manually.
-5. **Marketplace** — not listed; no Marketplace listing/review ticket exists yet.
+2. **Sync-event idempotency** — the event marker is still process-local; evidence itself is deduplicated durably by content hash.
+3. **Release provisioning** — releases are created from Jira versions during sync; there is no UI to create a release manually.
+4. **Marketplace** — not listed; no Marketplace listing/review ticket exists yet.
+
+Teamwork Graph per-object scopes require organization-admin approval. If the scopes are declined, the graph panel reports the specific query failure and the rest of ShipSignal continues with an explicit evidence gap.
 
 ## Promotion
 
