@@ -1,4 +1,5 @@
 import { sql } from "@forge/sql";
+import { memoryEvidence, noteSqlFailure } from "./memory-store";
 
 export interface EvidenceRow {
   id: string;
@@ -18,7 +19,10 @@ export interface EvidenceRow {
 
 export class EvidenceRepository {
   async insert(record: EvidenceRow): Promise<void> {
-    await sql
+    // Always mirror into memory so a SQL outage still yields a usable brief.
+    memoryEvidence.put(`${record.workspace_id}:${record.id}`, { ...record });
+    try {
+      await sql
       .prepare(
         `INSERT INTO evidence_records (id, workspace_id, source_platform, source_id, evidence_type, title, summary, retrieved_at, source_updated_at, freshness, release_id, source_url, content_hash)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -42,40 +46,76 @@ export class EvidenceRepository {
         record.content_hash ?? null
       )
       .execute();
+    } catch (error) {
+      noteSqlFailure(error);
+    }
   }
 
   async listByWorkspace(workspaceId: string, limit = 50): Promise<EvidenceRow[]> {
-    const result = await sql
-      .prepare<EvidenceRow>(
-        `SELECT id, workspace_id, source_platform, source_id, evidence_type, title, summary, retrieved_at, source_updated_at, freshness, release_id, source_url, content_hash
+    try {
+      const result = await sql
+        .prepare<EvidenceRow>(
+          `SELECT id, workspace_id, source_platform, source_id, evidence_type, title, summary, retrieved_at, source_updated_at, freshness, release_id, source_url, content_hash
          FROM evidence_records WHERE workspace_id = ? ORDER BY retrieved_at DESC LIMIT ?`
-      )
-      .bindParams(workspaceId, limit)
-      .execute();
-    return result.rows ?? [];
+        )
+        .bindParams(workspaceId, limit)
+        .execute();
+      const rows = result.rows ?? [];
+      if (rows.length > 0) return rows;
+      return this.fromMemory(workspaceId, limit);
+    } catch (error) {
+      noteSqlFailure(error);
+      return this.fromMemory(workspaceId, limit);
+    }
   }
 
   async listByWorkspaceIds(workspaceId: string, releaseIds: string[], limit = 500): Promise<EvidenceRow[]> {
     if (releaseIds.length === 0) return [];
-    const marks = releaseIds.map(() => "?").join(",");
-    const result = await sql
-      .prepare<EvidenceRow>(
-        `SELECT id, workspace_id, source_platform, source_id, evidence_type, title, summary, retrieved_at, source_updated_at, freshness, release_id, source_url, content_hash
+    const inMemory = () =>
+      this.fromMemory(workspaceId, limit, (row) => row.release_id !== null && releaseIds.includes(row.release_id));
+    try {
+      const marks = releaseIds.map(() => "?").join(",");
+      const result = await sql
+        .prepare<EvidenceRow>(
+          `SELECT id, workspace_id, source_platform, source_id, evidence_type, title, summary, retrieved_at, source_updated_at, freshness, release_id, source_url, content_hash
          FROM evidence_records WHERE workspace_id = ? AND release_id IN (${marks}) ORDER BY retrieved_at DESC LIMIT ?`
-      )
-      .bindParams(workspaceId, ...releaseIds, limit)
-      .execute();
-    return result.rows ?? [];
+        )
+        .bindParams(workspaceId, ...releaseIds, limit)
+        .execute();
+      const rows = result.rows ?? [];
+      if (rows.length > 0) return rows;
+      return inMemory();
+    } catch (error) {
+      noteSqlFailure(error);
+      return inMemory();
+    }
   }
 
   async listByRelease(workspaceId: string, releaseId: string, limit = 100): Promise<EvidenceRow[]> {
-    const result = await sql
-      .prepare<EvidenceRow>(
-        `SELECT id, workspace_id, source_platform, source_id, evidence_type, title, summary, retrieved_at, source_updated_at, freshness, release_id, source_url, content_hash
+    const inMemory = () => this.fromMemory(workspaceId, limit, (row) => row.release_id === releaseId);
+    try {
+      const result = await sql
+        .prepare<EvidenceRow>(
+          `SELECT id, workspace_id, source_platform, source_id, evidence_type, title, summary, retrieved_at, source_updated_at, freshness, release_id, source_url, content_hash
          FROM evidence_records WHERE workspace_id = ? AND release_id = ? ORDER BY retrieved_at DESC LIMIT ?`
-      )
-      .bindParams(workspaceId, releaseId, limit)
-      .execute();
-    return result.rows ?? [];
+        )
+        .bindParams(workspaceId, releaseId, limit)
+        .execute();
+      const rows = result.rows ?? [];
+      if (rows.length > 0) return rows;
+      return inMemory();
+    } catch (error) {
+      noteSqlFailure(error);
+      return inMemory();
+    }
+  }
+
+  private fromMemory(workspaceId: string, limit: number, filter?: (row: EvidenceRow) => boolean): EvidenceRow[] {
+    return memoryEvidence
+      .all()
+      .map((row) => row as unknown as EvidenceRow)
+      .filter((row) => row.workspace_id === workspaceId && (!filter || filter(row)))
+      .sort((a, b) => (a.retrieved_at < b.retrieved_at ? 1 : -1))
+      .slice(0, limit);
   }
 }

@@ -9,6 +9,7 @@ import { ReleaseRepository } from "../repositories/release-repository";
 import { ensureMigrations } from "../database/migrations";
 import { handleSyncEvent } from "../events/sync-handler";
 import { IdempotencyRepository } from "../repositories/idempotency-repository";
+import { describeDegradedMode } from "../repositories/memory-store";
 import { AuditService } from "../services/audit-service";
 
 export interface SyncResult {
@@ -364,12 +365,14 @@ export class SyncWorker {
       correlationId: `sync-${Date.now()}`,
     });
 
+    const degraded = describeDegradedMode();
+
     return {
       workspaceId,
       sources,
       evidenceCount,
       releasesUpserted,
-      warnings,
+      warnings: degraded ? [...warnings, degraded] : warnings,
       syncedAt: now,
     };
   }
