@@ -6,21 +6,22 @@ describe("promotion-stamp", () => {
     expect(fs.existsSync("scripts/promotion-pipeline.mjs")).toBe(true);
   });
 
-  it("pipeline script writes the required stamp keys", () => {
+  it("pipeline script writes exactly the contract stamp keys", () => {
     const src = fs.readFileSync("scripts/promotion-pipeline.mjs", "utf8");
     expect(src).toContain("dist/release/stamp.json");
-    for (const key of ["version", "sha", "env", "timestamp"]) {
-      expect(src.includes(key)).toBe(true);
-    }
+    const block = src.slice(src.indexOf("const stamp = {"), src.indexOf("});", src.indexOf("const stamp = {")));
+    expect(block.length).toBeGreaterThan(0);
+    const keys = [...block.matchAll(/^\s*([A-Za-z_]+)\s*[:,]/gm)].map((m) => m[1]).sort();
+    expect(keys).toEqual(["env", "sha", "timestamp", "version"]);
   });
 
-  it("stamp.json, when present, has the required shape", () => {
+  it("stamp.json, when present, has exactly the contract shape", () => {
+    // Conditional by design: the pipeline runs `npm test` BEFORE writing the
+    // stamp, so requiring the artifact here would deadlock fresh checkouts.
+    // The script-level exact-keys test above always enforces the contract.
     if (!fs.existsSync("dist/release/stamp.json")) return;
     const stamp = JSON.parse(fs.readFileSync("dist/release/stamp.json", "utf8"));
-    expect(typeof stamp.version).toBe("string");
-    expect(typeof stamp.sha).toBe("string");
-    expect(typeof stamp.env).toBe("string");
-    expect(typeof stamp.timestamp).toBe("string");
+    expect(Object.keys(stamp).sort()).toEqual(["env", "sha", "timestamp", "version"]);
     expect(Number.isNaN(Date.parse(stamp.timestamp))).toBe(false);
   });
 });

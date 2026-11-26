@@ -35,7 +35,7 @@ ShipSignal is a real, deployed Atlassian Forge application (not a mockup) that c
 ### Bonus prizes targeted
 - **Best Rovo Agents:** dedicated `rovo:agent` (`shipsignal-agent`) + evidence-backed actions; read-only actions are exposed to the agent, mutations require confirmation.
 - **Best Atlassian MCP:** `rovo:mcp` (`shipsignal-mcp`) with `get-release-readiness`, `get-release-blockers`, `get-project-health`, `get-change-impact`, `get-service-dependencies`, `get-risk-evidence`, `generate-release-report`, `create-remediation-task`, `update-risk-status`.
-- **Teamwork Graph:** adapter included with honest fallback when graph scopes are unavailable; not claimed as a working bonus integration for this listing.
+- **Best Teamwork Graph:** `TeamworkGraphAdapter` consumes the graph via `api.asUser()` (Compass components via `requestGraph` GraphQL); where graph scopes or user context are unavailable it reports honest unhealthy/partial state and the brief records an evidence gap — relationships are never fabricated.
 - **Runs on Atlassian:** ShipSignal runs entirely on Atlassian infrastructure — Forge compute (`nodejs24.x`) + Forge SQL persistence. No external servers, no data leaving the Atlassian cloud; when a source is unreachable the brief records an evidence gap instead of inventing data.
 
 ## Testing instructions for judges (clean-site reproduce)
