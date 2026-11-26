@@ -3,3 +3,5 @@ dist/
 static/
 .env
 *.log
+.worktrees/
+.superpowers/sdd/
