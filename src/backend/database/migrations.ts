@@ -1,10 +1,11 @@
 import { migrationRunner } from "@forge/sql";
 
 let initialized = false;
+let inFlight: Promise<{ ran: string[]; skipped: boolean }> | null = null;
 
 const MIGRATIONS: Array<{ name: string; statement: string }> = [
   {
-    name: "001_initial",
+    name: "001_workspaces",
     statement: `CREATE TABLE IF NOT EXISTS workspaces (
       id VARCHAR(64) PRIMARY KEY,
       installation_id VARCHAR(128) NOT NULL,
@@ -48,11 +49,14 @@ const MIGRATIONS: Array<{ name: string; statement: string }> = [
     name: "001_risk",
     statement: `CREATE TABLE IF NOT EXISTS risk_assessments (
       id VARCHAR(64) PRIMARY KEY,
+      workspace_id VARCHAR(64) NOT NULL,
       release_id VARCHAR(64) NOT NULL,
       status VARCHAR(16) NOT NULL,
       risk_score INT,
       assessed_at VARCHAR(64) NOT NULL,
-      evidence_freshness VARCHAR(16) NOT NULL
+      evidence_freshness VARCHAR(16) NOT NULL,
+      policy_version VARCHAR(16) NOT NULL,
+      evidence_ids TEXT NOT NULL
     )`,
   },
   {
@@ -71,35 +75,90 @@ const MIGRATIONS: Array<{ name: string; statement: string }> = [
   },
   {
     name: "002_indexes",
-    statement: `CREATE INDEX IF NOT EXISTS idx_releases_workspace_id ON releases(workspace_id)`,
+    statement: `CREATE INDEX idx_releases_workspace_id ON releases(workspace_id)`,
   },
   {
     name: "002_evidence_index",
-    statement: `CREATE INDEX IF NOT EXISTS idx_evidence_workspace_id ON evidence_records(workspace_id)`,
+    statement: `CREATE INDEX idx_evidence_workspace_id ON evidence_records(workspace_id)`,
   },
   {
     name: "002_evidence_release_index",
-    statement: `CREATE INDEX IF NOT EXISTS idx_evidence_release_id ON evidence_records(release_id)`,
+    statement: `CREATE INDEX idx_evidence_release_id ON evidence_records(release_id)`,
+  },
+  {
+    name: "002_evidence_source_index",
+    statement: `CREATE INDEX idx_evidence_source ON evidence_records(workspace_id, source_platform, source_id)`,
+  },
+  {
+    name: "003_evidence_provenance",
+    statement: `ALTER TABLE evidence_records ADD COLUMN source_url VARCHAR(1024) NULL`,
+  },
+  {
+    name: "003_evidence_hash",
+    statement: `ALTER TABLE evidence_records ADD COLUMN content_hash VARCHAR(64) NULL`,
+  },
+  {
+    name: "003_evidence_unique",
+    statement: `CREATE UNIQUE INDEX idx_evidence_content_hash ON evidence_records(workspace_id, content_hash)`,
+  },
+  {
+    name: "003_idempotency",
+    statement: `CREATE TABLE IF NOT EXISTS idempotency_keys (
+      workspace_id VARCHAR(64) NOT NULL,
+      operation VARCHAR(128) NOT NULL,
+      idempotency_key VARCHAR(128) NOT NULL,
+      status VARCHAR(32) NOT NULL,
+      result_json TEXT,
+      created_at VARCHAR(64) NOT NULL,
+      PRIMARY KEY (workspace_id, operation, idempotency_key)
+    )`,
+  },
+  {
+    name: "003_risk_status_updates",
+    statement: `CREATE TABLE IF NOT EXISTS risk_status_updates (
+      id VARCHAR(64) PRIMARY KEY,
+      workspace_id VARCHAR(64) NOT NULL,
+      release_id VARCHAR(64) NOT NULL,
+      status VARCHAR(16) NOT NULL,
+      reason TEXT,
+      actor_id VARCHAR(128) NOT NULL,
+      created_at VARCHAR(64) NOT NULL
+    )`,
+  },
+  {
+    name: "003_workspace_installations",
+    statement: `CREATE TABLE IF NOT EXISTS workspace_installations (
+      cloud_id VARCHAR(128) PRIMARY KEY,
+      installation_id VARCHAR(128) NOT NULL,
+      created_at VARCHAR(64) NOT NULL,
+      updated_at VARCHAR(64) NOT NULL
+    )`,
   },
 ];
 
 export async function ensureMigrations(): Promise<{ ran: string[]; skipped: boolean }> {
   if (initialized) return { ran: [], skipped: true };
-  initialized = true;
-  try {
+  if (inFlight) return inFlight;
+  inFlight = (async () => {
     await migrationRunner.initialize();
     for (const m of MIGRATIONS) {
       migrationRunner.enqueue(m.name, m.statement);
     }
     const ran = await migrationRunner.run();
+    initialized = true;
     return { ran, skipped: false };
+  })();
+  try {
+    return await inFlight;
   } catch (error) {
-    // Idempotent CREATE TABLE IF NOT EXISTS should not fail; if the runner
-    // reports already-applied migrations, treat as success.
-    return { ran: [], skipped: false };
+    initialized = false;
+    throw error;
+  } finally {
+    inFlight = null;
   }
 }
 
 export function resetMigrationStateForTests(): void {
   initialized = false;
+  inFlight = null;
 }

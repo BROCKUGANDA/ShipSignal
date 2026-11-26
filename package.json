@@ -4,6 +4,7 @@
   "description": "",
   "scripts": {
     "dev": "vite",
+    "dev:demo": "vite --mode demo",
     "build": "tsc --noEmit && vite build",
     "build:backend": "tsc -p tsconfig.backend.json",
     "test": "vitest run",

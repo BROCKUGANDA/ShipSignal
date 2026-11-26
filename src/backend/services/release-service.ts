@@ -1,5 +1,6 @@
 import { ReleaseRepository } from "../repositories/release-repository";
 import { assessRelease } from "../../domain/risk-engine";
+import type { EvidenceSignals } from "../../domain/risk-engine";
 import type { Release, RiskAssessment, EvidenceReference } from "../../domain/types";
 
 export class ReleaseService {
@@ -17,10 +18,10 @@ export class ReleaseService {
     workspaceId: string,
     releaseId: string,
     evidence: EvidenceReference[],
-    flags: { hasUnreviewedChanges: boolean; hasMissingDocs: boolean; hasCriticalIssues: boolean }
+    signals?: Partial<EvidenceSignals>
   ): Promise<RiskAssessment | null> {
     const release = await this.repo.findById(workspaceId, releaseId);
     if (!release) return null;
-    return assessRelease(release, evidence, flags);
+    return assessRelease(release, evidence, signals);
   }
 }

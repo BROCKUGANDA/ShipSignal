@@ -13,6 +13,20 @@ export interface JiraVersion {
   description?: string;
   released?: boolean;
   releaseDate?: string;
+  self?: string;
+}
+
+export interface JiraIssue {
+  id: string;
+  key: string;
+  self?: string;
+  fields?: {
+    summary?: string;
+    updated?: string;
+    status?: { name?: string };
+    priority?: { name?: string };
+    issuetype?: { name?: string };
+  };
 }
 
 export class JiraAdapter implements IntegrationProvider {
@@ -52,16 +66,29 @@ export class JiraAdapter implements IntegrationProvider {
     return Array.isArray(json) ? json : [];
   }
 
+  async fetchIssuesForVersion(versionName: string, limit = 50): Promise<JiraIssue[]> {
+    const jql = encodeURIComponent(`fixVersion = "${versionName.replace(/"/g, '\\"')}" ORDER BY priority DESC`);
+    const res = await api.asApp().requestJira(
+      route`/rest/api/3/search?jql=${jql}&maxResults=${limit}&fields=summary,status,priority,issuetype,updated`
+    );
+    if (!res.ok) return [];
+    const json = (await res.json()) as { issues?: JiraIssue[] };
+    return Array.isArray(json.issues) ? json.issues : [];
+  }
+
   async fetchPage<T>(request: ProviderRequest): Promise<ProviderResult<T>> {
     const limit = request.limit ?? 25;
     const res = await api.asApp().requestJira(route`/rest/api/3/search?maxResults=${limit}&startAt=0`);
+    if (!res.ok) {
+      return { data: {} as T, source: "jira", retrievedAt: new Date().toISOString(), partial: true, warnings: [`HTTP ${res.status}`] };
+    }
     const json = (await res.json()) as T;
     return {
       data: json,
       source: "jira",
       retrievedAt: new Date().toISOString(),
-      partial: !res.ok,
-      warnings: res.ok ? [] : [`HTTP ${res.status}`],
+      partial: false,
+      warnings: [],
     };
   }
 

@@ -20,7 +20,8 @@ export default function DependenciesPage() {
   }));
   // If no live data, show honest empty graph with note
   const displayNodes = nodes.length ? nodes : [{ id: "empty", label: "No dependencies yet", x: 200, y: 100 }];
-  const edges = nodes.slice(1).map((n: any, i: number) => ({ from: nodes[0].id, to: n.id }));
+  // Compass does not expose verified edges here. Never synthesize a star topology.
+  const edges: Array<{ from: string; to: string }> = [];
 
   return (
     <div>

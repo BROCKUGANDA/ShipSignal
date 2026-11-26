@@ -34,7 +34,7 @@ Atlassian Forge, TypeScript, React, Forge SQL, @forge/api, @forge/resolver, Zod,
 
 ## Accomplishments
 - Deployed and installed on a live Atlassian site.
-- 16 passing tests covering risk engine, retry, circuit breaker, validation, contracts.
+- 41 passing tests covering evidence-derived risk policy, release briefs, retry, circuit breaker, validation, tenancy, contracts, and manifest coverage.
 - Explainable, evidence-backed assessments.
 
 ## What's next

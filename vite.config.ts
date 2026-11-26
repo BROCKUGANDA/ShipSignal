@@ -2,7 +2,7 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "node:path";
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [react()],
   root: "src/frontend",
   base: "./",
@@ -12,13 +12,14 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "src"),
-      "@frontend": path.resolve(__dirname, "src/frontend"),
-      "@backend": path.resolve(__dirname, "src/backend"),
-      "@domain": path.resolve(__dirname, "src/domain"),
+      ...(mode === "demo" ? { "@forge/bridge": path.resolve(import.meta.dirname, "src/frontend/dev/bridge-mock.ts") } : {}),
+      "@": path.resolve(import.meta.dirname, "src"),
+      "@frontend": path.resolve(import.meta.dirname, "src/frontend"),
+      "@backend": path.resolve(import.meta.dirname, "src/backend"),
+      "@domain": path.resolve(import.meta.dirname, "src/domain"),
     },
   },
   server: {
     port: 3000,
   },
-});
+}));

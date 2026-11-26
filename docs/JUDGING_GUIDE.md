@@ -6,17 +6,21 @@
 
 ## Demo flow (under 5 min)
 1. Open Jira project page → ShipSignal panel.
-2. Show release list and a release detail with tabs.
-3. Open dependency graph.
-4. Open risk register.
-5. Ask Rovo agent: "Why is release X at risk?"
-6. Invoke MCP tool `get_release_readiness`.
-7. Show audit trail.
+2. Start at **Overview**: release verdicts, blockers, confidence, and source health.
+3. Open release **2.4.0 — Payments settlement**: show `HOLD`, confidence, source coverage, evidence gaps, and next actions.
+4. Open **Checks**: review readiness, critical issues, freshness, coverage, and documentation — each check cites its records.
+5. Open **Evidence**: filter by source/freshness, open a Jira/Bitbucket/Confluence source link.
+6. Open **Risks** and **Audit**: cited blockers and durable decision records.
+7. Run **Integrations → Run sync now**: release-scoped Jira issues, Confluence pages, Bitbucket PRs, and Compass components.
+8. Ask Rovo: *"Why is release 2.4.0 at risk?"* Invoke MCP `get-release-readiness`.
+9. Show that a missing source becomes an evidence gap, never invented data.
 
 ## Bonus prizes targeted
-- Best Rovo Agents: dedicated agent with evidence-backed actions.
-- Best Atlassian MCP: 9 typed MCP tools.
-- Best Teamwork Graph: adapter implemented (resilient fallback).
+- **Best Rovo Agents:** dedicated `rovo:agent` with evidence-backed read actions; mutations require explicit confirmation.
+- **Best Atlassian MCP:** 9 typed tools via `rovo:mcp`.
+- **Teamwork Graph:** adapter present; graph scopes are restricted for this app, so it reports an honest unhealthy/partial state. Not claimed as a working bonus integration.
 
 ## Verification
-- `npm run typecheck`, `npm run build`, `npm run build:backend`, `npm test` (16/16).
+- `npm run typecheck`, `npm run build`, `npm run build:backend`, `npm test` (41/41)
+- `forge lint`
+- No-login preview: `npm run dev:demo`

@@ -20,24 +20,27 @@ ShipSignal is a real, deployed Atlassian Forge application (not a mockup) that c
 **Every risk cites:** observation, source platform + ID + URL, retrieval timestamp, why it matters, severity, remediation, and whether human verification is required. **Deterministic scoring, explainable AI:** the risk engine applies versioned rules; AI only summarises evidence — it never invents records or changes scores. Missing evidence → status **INCOMPLETE**, never READY.
 
 ### Key features
-- Workspace overview: active releases, critical risks, open blockers, integration health
-- Release detail with 10 tabs (Summary, Readiness, Timeline, Issues, PRs, Dependencies, Evidence, Risks, Approvals, Audit)
-- Dependency graph: topology, critical paths, missing/unverified relationships (never fabricated)
-- Risk register + evidence explorer with provenance and freshness (CURRENT/STALE/PARTIAL/UNKNOWN)
+- Workspace overview: release verdicts, blockers, confidence, source health
+- Release brief with deterministic verdict (`SHIP`, `SHIP WITH GUARDRAILS`, `HOLD`, `INSUFFICIENT EVIDENCE`), confidence, checks, evidence gaps, and next actions
+- Evidence explorer with source ID, source URL, retrieval/update time, freshness, and filters
+- Risk register with factor confidence and explicit human-verification flags
 - Rovo Agent: evidence-grounded Q&A ("Why is 2.4.0 at risk?")
-- MCP server: 9 typed tools declared in the manifest (read-only independent; mutations gated)
-- Sync worker: creates releases from real Jira project versions, idempotent reconciliation, partial results, audit trail
+- MCP server: 9 typed tools; mutations require explicit confirmation
+- Sync worker: release-scoped Jira issues, Confluence pages, Bitbucket PRs, Compass components; content-hash dedupe; partial results; durable audit
 
 ### Bonus prizes targeted
-- **Best Rovo Agents:** dedicated `rovo:agent` + `action` modules
-- **Best Atlassian MCP:** `rovo:mcp` with `get_release_readiness`, `get_release_blockers`, `get_project_health`, `get_change_impact`, `get_service_dependencies`, `get_risk_evidence`, `generate_release_report`, `create_remediation_task`, `update_risk_status`
-- **Best Teamwork Graph:** genuine `requestTeamworkGraph` consumption via `api.asUser(accountId)` with honest fallback when no user context is available; Compass via `requestGraph` GraphQL
+- **Best Rovo Agents:** dedicated `rovo:agent` + evidence-backed actions; read-only actions are exposed to the agent, mutations require confirmation.
+- **Best Atlassian MCP:** `rovo:mcp` with `get-release-readiness`, `get-release-blockers`, `get-project-health`, `get-change-impact`, `get-service-dependencies`, `get-risk-evidence`, `generate-release-report`, `create-remediation-task`, `update-risk-status`.
+- **Teamwork Graph:** adapter included with honest fallback when graph scopes are unavailable; not claimed as a working bonus integration for this listing.
+
+## How this meets the Forge requirement
+ShipSignal is a deployed Forge app (`nodejs24.x`) with Jira project-page and Confluence space-page Custom UI, a UI resolver, a Rovo agent, a Rovo MCP server, scheduled reconciliation, a webtrigger, Forge SQL persistence, and least-privilege Atlassian scopes. It uses Jira, Confluence, Compass, and Bitbucket context; when a source is unavailable, the readiness brief records an evidence gap rather than inventing the missing fact.
 
 ## Tech Stack
 Atlassian Forge (nodejs24.x) · TypeScript strict · React 18 Custom UI + Atlaskit · Forge SQL · `@forge/api` / `@forge/resolver` / `@forge/bridge` · Zod · Vitest · Vite
 
 ## Architecture
-Modular: `src/frontend` (UI) · `src/backend` (resolvers, services, repositories, integrations, workers, security) · `src/domain` (types, schemas, deterministic risk engine). Vendor isolation via adapter anti-corruption layer. Security: server-side authz, tenant isolation, parameterised SQL, idempotency, exponential backoff + jitter, per-provider circuit breakers. Tests: 34 passing (risk engine, retry, circuit breaker, validation, idempotency, contracts, manifest MCP coverage).
+Modular: `src/frontend` (UI) · `src/backend` (resolvers, actions, triggers, services, repositories, integrations, workers, security) · `src/domain` (types, schemas, deterministic risk engine). Vendor isolation via adapter anti-corruption layer. Security: authoritative Forge tenant context, strict Zod inputs, parameterised SQL, content-hash evidence dedupe, exponential backoff + jitter, per-provider circuit breakers. Tests: 41 passing across 13 files (risk policy, evidence brief, retry, circuit breaker, validation, tenancy, contracts, manifest coverage).
 
 ## How to Try It
 1. Open https://shipsignal.atlassian.net → Jira project page → ShipSignal panel; Confluence space page → ShipSignal (`/shipsignal`).
@@ -49,8 +52,10 @@ Modular: `src/frontend` (UI) · `src/backend` (resolvers, services, repositories
 - Forge scope model: workspace vs site scopes can't mix (Bitbucket `read:repository:bitbucket` removed to lint-clean; adapter retained for a future workspace-scoped companion). Developer Space creation requires the web console. Forge SQL has no FK cascades — explicit cleanup.
 
 ## Accomplishments
-- ✅ `forge lint` clean, deployed v2.3.0, installed + upgraded in Jira & Confluence
-- ✅ 34/34 tests, typecheck + frontend/backend builds green
+- ✅ `forge lint` clean, deployed v3.0.0 with Forge SQL, installed + upgraded in Jira & Confluence
+- ✅ 41/41 tests, typecheck + frontend/backend builds green
+- ✅ Release brief with cited evidence, confidence, evidence gaps, and next actions
+- ✅ Durable audit, risk-decision records, and confirmation-gated mutations
 - ✅ 3:04 narrated demo video (HyperFrames + Kokoro TTS at natural pace, ffmpeg loudness-normalised to −14 LUFS) — https://youtu.be/mXgh5iUUsQ0
 
 ## What's Next

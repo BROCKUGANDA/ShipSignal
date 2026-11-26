@@ -1,26 +1,56 @@
-import React, { useEffect } from "react";
-import { PageHeader, LoadingState, EmptyState, ErrorState } from "../components/Common";
+import { useEffect } from "react";
+import { PageHeader, LoadingState, EmptyState, ErrorState, StatusPill } from "../components/Common";
 import { useResolver } from "../hooks/useResolver";
 
-export default function ActivityPage() {
-  const { data, loading, error, call } = useResolver<any>("getRiskEvidence");
-  useEffect(() => {
-    void call({ limit: 25 });
-  }, [call]);
+interface AuditEvent {
+  id: string;
+  actorId: string;
+  actorType: string;
+  operation: string;
+  targetEntity: string;
+  result: string;
+  timestamp: string;
+  correlationId: string;
+}
 
-  if (loading) return <div><PageHeader title="Activity & Audit" subtitle="Searchable audit records." /><LoadingState /></div>;
-  if (error) return <div><PageHeader title="Activity & Audit" /><ErrorState message={error} onRetry={() => void call({ limit: 25 })} /></div>;
-  const rows = data?.evidence ?? [];
-  if (rows.length === 0) {
-    return <div><PageHeader title="Activity & Audit" subtitle="Searchable audit records." /><EmptyState title="No activity" description="Audit events appear after sync and readiness operations." /></div>;
-  }
+export default function ActivityPage() {
+  const { data, loading, error, call } = useResolver<{ events: AuditEvent[] }>("listAuditEvents");
+  useEffect(() => {
+    void call();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const rows = data?.events ?? [];
   return (
     <div>
-      <PageHeader title="Activity & Audit" subtitle="Searchable audit records." />
-      <table style={{ width: "100%", borderCollapse: "collapse" }}>
-        <thead><tr style={{ borderBottom: "1px solid #dcdfe4", textAlign: "left" }}><th style={{ padding: 8 }}>Title</th><th style={{ padding: 8 }}>Source</th><th style={{ padding: 8 }}>Retrieved</th></tr></thead>
-        <tbody>{rows.map((r: any) => <tr key={r.id} style={{ borderBottom: "1px solid #f0f1f3" }}><td style={{ padding: 8 }}>{r.title}</td><td style={{ padding: 8 }}>{r.sourcePlatform}</td><td style={{ padding: 8 }}>{r.retrievedAt}</td></tr>)}</tbody>
-      </table>
+      <PageHeader
+        eyebrow="Decision ledger"
+        title="Audit"
+        subtitle="Durable records for readiness checks, synchronizations, and confirmed mutations."
+      />
+      {loading ? <LoadingState label="Loading audit records..." /> : null}
+      {error ? <ErrorState message={error} onRetry={() => void call()} /> : null}
+      {!loading && !error && rows.length === 0 ? (
+        <EmptyState title="No audit records" description="Audit rows are written when a release is assessed or a confirmed mutation executes." />
+      ) : null}
+      {rows.length > 0 ? (
+        <div className="card" style={{ overflow: "hidden" }}>
+          <table className="data-table">
+            <thead><tr><th>Operation</th><th>Actor</th><th>Target</th><th>Result</th><th>When</th></tr></thead>
+            <tbody>
+              {rows.map((row) => (
+                <tr key={row.id}>
+                  <td>{row.operation}<div className="muted mono">{row.correlationId}</div></td>
+                  <td>{row.actorId}<div className="muted mono">{row.actorType}</div></td>
+                  <td className="mono">{row.targetEntity}</td>
+                  <td><StatusPill status={row.result} /></td>
+                  <td>{new Date(row.timestamp).toLocaleString()}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : null}
     </div>
   );
 }

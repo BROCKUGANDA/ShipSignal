@@ -45,7 +45,7 @@ No remote configured; `git remote -v` empty. Other AI Azimara repos not present 
 
 ## Test coverage
 
-16/16 vitest pass (unit + contract). Frontend pages now wire resolvers; no e2e harness for Forge Custom UI in repo (Forge tunnel required).
+41/41 vitest pass (unit + contract). Frontend pages now wire resolvers; no e2e harness for Forge Custom UI in repo (Forge tunnel required).
 
 ## Technical debt
 

@@ -1,68 +1,69 @@
 # ShipSignal — Production Readiness
 
-**Version:** 1.0.0  
-**Date:** 2026-11-08  
+**Version:** 3.0.0  
+**Date:** 2026-11-26  
 **Environment:** Forge (Jira + Confluence, nodejs24.x)  
 **Status:** PRODUCTION READY WITH DOCUMENTED LIMITATIONS
 
 ## Baseline
 
 - `npm run typecheck`: PASS
-- `npm test`: 16/16 PASS (vitest)
-- `npm run build`: PASS (175 modules, static/frontend)
+- `npm test`: 41/41 PASS (13 files)
+- `npm run build`: PASS → `static/frontend/`
 - `npm run build:backend`: PASS
+- `forge lint`: PASS
+- `forge deploy`: PASS (v3.0.0, MAJOR_VERSION_RULE approved for Forge SQL)
+- Jira + Confluence installations upgraded
 
 ## Architecture
 
-- Frontend: React 18 + Vite + Custom UI (Jira/Confluence projectPage/spacePage)
-- Backend: Forge Resolver (`src/backend/index.ts`) + integrations (Jira/Bitbucket/Confluence/Compass)
-- Persistence: Forge SQL (workspaces, releases, evidence_records, risk_assessments, audit_events)
-- Domain: deterministic risk engine (`src/domain/risk-engine.ts`), zod validation
-- Workers: scheduled reconciliation trigger, sync webtrigger
-- Agents: Rovo agent + MCP exposure for `getReleaseReadiness`, `getReleaseBlockers`
+- Frontend: React 18 + Vite Custom UI; hash routing for the Forge iframe.
+- Backend entrypoints: UI resolver, Rovo actions, scheduled trigger, webtrigger.
+- Persistence: Forge SQL (workspaces, releases, evidence_records, risk_assessments, audit_events, risk_status_updates, idempotency_keys, workspace_installations).
+- Domain: typed evidence references, versioned deterministic risk policy, release brief.
+- Workers: hourly reconciliation and manual sync; release-scoped Jira issue evidence, Confluence page evidence, Bitbucket PR evidence, Compass component evidence.
+- Agents: Rovo agent + 9 MCP tools with explicit confirmation required for mutations.
 
-## Fixes in this batch (hardening)
+## Fixes in the 2026-11-26 core pass
 
-1. **Resolver stubs eliminated** — `getChangeImpact`, `getServiceDependencies`, `getRiskEvidence`, `generateReleaseReport`, `createRemediationTask` (Jira issue create via `api.asApp().requestJira`), `updateRiskStatus`, `listReleases` now backed by EvidenceRepository/ReleaseRepository + real adapter calls.
-2. **Tenant isolation** — `resolveWorkspaceId()` prefers Forge context (`installationId`/`tenantId`/`workspaceId`), ignores mismatched payload workspaceId (warn), and requires context in production (no silent "default" fallback). In Forge, context is authoritative.
-3. **Input validation** — strict Zod schemas for all resolvers (releaseId regex, enums, size limits).
-4. **Error hygiene** — `normalizeError` sanitizes internal messages in production; all resolvers use correlationId + console.error with code; no raw stack leakage.
-5. **Circuit breaker + retry** — Jira/Bitbucket/Confluence health checks wrapped in breaker; Jira issue creation uses `withRetry` (2 attempts) with exponential backoff + jitter.
-6. **Frontend wiring** — Overview, Releases, ReleaseDetail, Evidence, Risks, Dependencies, Impact, Assistant, Integrations, Projects, Activity, Settings now call live resolvers and render real data; sample/hardcoded 0 metrics removed or explicitly labeled as unknown.
-7. **SQL** — `002_indexes_and_idempotency.sql` adds indexes on workspace/project/source, plus `idempotency_keys`, `risk_status_updates`, `workspace_installations` tables for durable idempotency (in-memory store remains dev fallback until Forge SQL wiring is completed).
+1. **Forge SQL enabled** — `modules.sql` added; repositories now have a real runtime.
+2. **Correct Forge entrypoints** — actions, webtrigger, and scheduled trigger no longer share the UI resolver's `call.functionKey` contract.
+3. **Tenant context** — workspace ID is derived from Forge `cloudId`/installation context; payload tenant IDs are ignored.
+4. **Evidence-driven scoring** — review state, critical issues, documentation, freshness, and source coverage produce cited factors; `INCOMPLETE` when coverage is insufficient.
+5. **Release brief** — deterministic verdict, confidence, checks, blockers, evidence gaps, and next actions.
+6. **Structured evidence** — release-scoped issues, PR review state, page update times, source URLs, content-hash dedupe.
+7. **Durable audit** — audit rows persist to Forge SQL and appear in the Audit view.
+8. **Risk decisions** — `updateRiskStatus` writes `risk_status_updates` instead of corrupting `releases.status`; mutations require `confirm: true`.
+9. **UI** — release brief, evidence explorer, risk register, integration health, honest dependency view, hash routing, no-login preview harness (`npm run dev:demo`).
 
 ## Security
 
-- No secrets in repo (.gitignore covers .env). Manifest `external.fetch` restricted to `*.atlassian.net`, `api.bitbucket.org`, `api.atlassian.com`.
-- Scopes: least-privilege `read:jira-work`, `write:jira-work`, `read:confluence-content.all`, etc.
-- Mass assignment avoided via strict schemas. Audit events recorded for readiness and status updates.
+- No secrets in repo (`.gitignore` covers `.env`).
+- Manifest `external.fetch` restricted to Atlassian/Bitbucket hosts.
+- Strict Zod schemas at resolver boundaries.
+- Mutation actions require explicit confirmation and are audited.
+- Forge context is authoritative for tenant scope; payload overrides are rejected.
 
-## Known Limitations (tracked)
+## Known Limitations
 
-1. **In-memory Audit/Idempotency** — `AuditService`/`IdempotencyStore` are process-local Maps (Forge functions are stateless). Durable Forge SQL tables are added in migration 002; next step is to swap repositories to SQL-backed `AuditRepository`/`IdempotencyRepository` (P2).
-2. **Compass API** — `requestCompass` is not stable in Forge runtime; adapter returns honest partial warnings. Derived dependencies from Bitbucket/evidence are used as fallback.
-3. **Teamwork Graph** — site-config dependent; adapter returns honest unhealthy with message.
-4. **Release creation** — no resolver to create releases; releases are expected from Jira sync / manual seeding via SQL. Future: `createRelease` + Jira version sync.
-5. **Rovo prompt** — text-based, requires Marketplace Rovo validation.
+1. **Compass API** — preview API behavior varies; failures are labelled partial rather than replaced with invented data.
+2. **Teamwork Graph** — graph scopes are restricted for this app; adapter reports an honest unhealthy/partial state. Full ingestion requires an approved scope grant.
+3. **Sync-event idempotency** — the event marker is still process-local; evidence itself is deduplicated durably by content hash.
+4. **Release provisioning** — releases are created from Jira versions during sync; there is no UI to create a release manually.
+5. **Marketplace** — not listed; no Marketplace listing/review ticket exists yet.
 
 ## Promotion
 
 ```bash
-node scripts/promotion-pipeline.mjs --env production --skip-forge
-# or with Forge auth:
-node scripts/promotion-pipeline.mjs --env production
+npm run typecheck && npm test && npm run build && npm run build:backend
+forge lint
+forge deploy --approve MAJOR_VERSION_RULE
+forge install --upgrade=all -s shipsignal.atlassian.net -p jira -e development --confirm-scopes
+forge install --upgrade=all -s shipsignal.atlassian.net -p confluence -e development --confirm-scopes
 ```
-
-Pipeline runs typecheck, tests, frontend + backend builds, manifest lint, writes `dist/release/stamp.json` (version, git SHA, env, timestamp).
 
 ## Evidence
 
-- `dist/release/stamp.json` (after pipeline)
-- vitest output: 8 files, 16 tests passed
+- `dist/release/stamp.json` after promotion pipeline
 - `static/frontend/` built artifact
-
-## Next risks
-
-- P1: None known critical/high — critical security and broken core workflows addressed.
-- P2: Forge SQL Idempotency wiring; distribute audit to SQL; Compass stable API; release provisioning.
-- P3: Analytics, billing, subscription lifecycle (not in current product promise).
+- Forge deployment 3.0.0

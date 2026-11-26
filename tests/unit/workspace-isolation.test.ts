@@ -2,17 +2,21 @@ import { describe, it, expect } from "vitest";
 import { resolveWorkspaceId, normalizeError, correlationIdFromRequest } from "../../src/backend/security/errors";
 
 describe("workspace isolation", () => {
-  it("prefers context installationId over payload mismatch", () => {
-    const id = resolveWorkspaceId({ installationId: "tenant-a" }, { workspaceId: "tenant-b" });
-    expect(id).toBe("tenant-a");
+  it("prefers cloudId over payload mismatch", () => {
+    const id = resolveWorkspaceId({ cloudId: "cloud-a" }, { workspaceId: "tenant-b" });
+    expect(id).toBe("cloud-a");
   });
 
-  it("uses payload when no context", () => {
+  it("never trusts a payload workspace when context is absent", () => {
     const prev = process.env.NODE_ENV;
     delete process.env.NODE_ENV;
     const id = resolveWorkspaceId({}, { workspaceId: "w1" });
-    expect(id).toBe("w1");
+    expect(id).toBe("");
     process.env.NODE_ENV = prev;
+  });
+
+  it("reads the resolver installation object", () => {
+    expect(resolveWorkspaceId({ installation: { id: "installation-1" } })).toBe("installation-1");
   });
 
   it("normalizeError maps rate limit", () => {

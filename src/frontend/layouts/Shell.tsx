@@ -1,50 +1,49 @@
-import React from "react";
 import { Outlet, NavLink } from "react-router-dom";
 
 const navItems = [
   { to: "/overview", label: "Overview" },
   { to: "/releases", label: "Releases" },
-  { to: "/projects", label: "Projects" },
-  { to: "/dependencies", label: "Dependencies" },
-  { to: "/risks", label: "Risks" },
+  { to: "/risks", label: "Risk register" },
   { to: "/evidence", label: "Evidence" },
-  { to: "/impact", label: "Impact" },
-  { to: "/assistant", label: "Assistant" },
+  { to: "/dependencies", label: "Dependencies" },
+  { to: "/assistant", label: "Impact" },
   { to: "/integrations", label: "Integrations" },
-  { to: "/activity", label: "Activity" },
-  { to: "/settings", label: "Settings" },
+  { to: "/activity", label: "Audit" },
 ];
 
 export default function Shell() {
   return (
-    <div style={{ display: "flex", minHeight: "100vh" }}>
-      <aside style={{ width: 240, padding: 16, borderRight: "1px solid #dcdfe4" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
-          <img src="./logo.svg" alt="ShipSignal logo" width={36} height={36} style={{ borderRadius: 8, flexShrink: 0 }} onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />
+    <div className="app-shell">
+      <aside className="sidebar">
+        <div className="brand">
+          <img
+            src="./logo.svg"
+            alt=""
+            width={38}
+            height={38}
+            onError={(e) => {
+              (e.currentTarget as HTMLImageElement).style.display = "none";
+            }}
+          />
           <div>
-            <h1 style={{ fontSize: 18, margin: 0, lineHeight: 1.1 }}>ShipSignal</h1>
-            <div style={{ fontSize: 11, color: "#5e6c84", letterSpacing: "0.04em" }}>RELEASE INTELLIGENCE</div>
+            <div className="brand-name">ShipSignal</div>
+            <div className="brand-kicker">Evidence before release</div>
           </div>
         </div>
-        <nav style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+        <nav className="nav" aria-label="ShipSignal">
           {navItems.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              style={({ isActive }) => ({
-                padding: "8px 12px",
-                borderRadius: 6,
-                textDecoration: "none",
-                color: isActive ? "#fff" : "#172b4d",
-                background: isActive ? "#315cde" : "transparent",
-              })}
-            >
+            <NavLink key={item.to} to={item.to} className={({ isActive }) => (isActive ? "active" : undefined)}>
               {item.label}
             </NavLink>
           ))}
         </nav>
+        <div className="sidebar-foot">
+          Deterministic readiness.
+          <br />
+          AI explains. Evidence decides.
+        </div>
       </aside>
-      <main style={{ flex: 1, padding: 24 }}>
+      <main className="main">
         <Outlet />
       </main>
     </div>

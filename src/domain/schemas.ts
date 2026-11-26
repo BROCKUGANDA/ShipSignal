@@ -66,6 +66,7 @@ export const CreateRemediationTaskRequestSchema = z
     summary: z.string().min(1).max(256),
     description: z.string().max(4096).optional(),
     projectKey: z.string().min(1).max(32).regex(/^[A-Z]+$/).optional(),
+    confirm: z.boolean().optional().default(false),
   })
   .strict();
 
@@ -73,7 +74,8 @@ export const UpdateRiskStatusRequestSchema = z
   .object({
     releaseId: ReleaseIdSchema,
     status: z.enum(["READY", "AT_RISK", "BLOCKED", "INCOMPLETE"]),
-    reason: z.string().max(1024).optional(),
+    reason: z.string().min(1).max(1024),
+    confirm: z.boolean().optional().default(false),
   })
   .strict();
 

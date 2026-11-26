@@ -4,17 +4,27 @@ app:
     name: nodejs24.x
 
 modules:
+  sql:
+    - key: shipsignal-sql
+      engine: mysql
+
   function:
     - key: resolver
       handler: backend/index.handler
+    - key: actions
+      handler: backend/index.actionHandler
+    - key: sync-trigger
+      handler: backend/index.webtriggerHandler
+    - key: scheduled-sync
+      handler: backend/index.scheduledHandler
 
   webtrigger:
     - key: sync-webtrigger
-      function: resolver
+      function: sync-trigger
 
   scheduledTrigger:
     - key: reconciliation-trigger
-      function: resolver
+      function: scheduled-sync
       interval: hour
 
   jira:projectPage:
@@ -42,53 +52,152 @@ modules:
       actions:
         - get-release-readiness
         - get-release-blockers
+        - get-project-health
+        - get-change-impact
+        - get-service-dependencies
+        - get-risk-evidence
+        - generate-release-report
 
   action:
     - key: get-release-readiness
       name: Get Release Readiness
-      function: resolver
+      function: actions
       actionVerb: GET
-      description: Get release readiness assessment.
+      description: Get a deterministic release readiness assessment with cited evidence.
+      inputs:
+        releaseId:
+          title: Release ID
+          type: string
+          required: true
+          description: ShipSignal release identifier.
     - key: get-release-blockers
       name: Get Release Blockers
-      function: resolver
+      function: actions
       actionVerb: GET
-      description: Get release blockers.
+      description: List blockers for a release with source evidence.
+      inputs:
+        releaseId:
+          title: Release ID
+          type: string
+          required: true
+          description: ShipSignal release identifier.
     - key: get-project-health
       name: Get Project Health
-      function: resolver
+      function: actions
       actionVerb: GET
-      description: Get integration health.
+      description: Check Jira, Bitbucket, Confluence, Compass, and Teamwork Graph health.
+      inputs: {}
     - key: get-change-impact
       name: Get Change Impact
-      function: resolver
+      function: actions
       actionVerb: GET
-      description: Get change impact.
+      description: Find evidence related to a change, pull request, or issue identifier.
+      inputs:
+        changeId:
+          title: Change identifier
+          type: string
+          required: true
+          description: Commit, change, pull request, or issue identifier.
     - key: get-service-dependencies
       name: Get Service Dependencies
-      function: resolver
+      function: actions
       actionVerb: GET
-      description: Get service dependencies.
+      description: Return Compass and evidence-derived service dependencies.
+      inputs:
+        releaseId:
+          title: Release ID
+          type: string
+          required: false
+          description: Optional release identifier.
     - key: get-risk-evidence
       name: Get Risk Evidence
-      function: resolver
+      function: actions
       actionVerb: GET
-      description: Get risk evidence.
+      description: Return cited evidence records for a workspace or release.
+      inputs:
+        releaseId:
+          title: Release ID
+          type: string
+          required: false
+          description: Optional release identifier.
+        limit:
+          title: Limit
+          type: integer
+          required: false
+          description: Maximum records to return (1-100).
     - key: generate-release-report
       name: Generate Release Report
-      function: resolver
+      function: actions
       actionVerb: GET
-      description: Generate release report.
+      description: Generate a release readiness report with factors, blockers, and evidence.
+      inputs:
+        releaseId:
+          title: Release ID
+          type: string
+          required: true
+          description: ShipSignal release identifier.
+        format:
+          title: Format
+          type: string
+          required: false
+          description: summary, markdown, or json.
     - key: create-remediation-task
       name: Create Remediation Task
-      function: resolver
+      function: actions
       actionVerb: CREATE
-      description: Create remediation task.
+      description: Create a Jira remediation task after explicit confirmation.
+      inputs:
+        releaseId:
+          title: Release ID
+          type: string
+          required: true
+          description: ShipSignal release identifier.
+        summary:
+          title: Summary
+          type: string
+          required: true
+          description: Jira task summary.
+        description:
+          title: Description
+          type: string
+          required: false
+          description: Optional task description.
+        projectKey:
+          title: Project key
+          type: string
+          required: false
+          description: Jira project key; defaults to the release project.
+        confirm:
+          title: Confirm
+          type: boolean
+          required: true
+          description: Must be true. The agent must ask the user before setting this.
     - key: update-risk-status
       name: Update Risk Status
-      function: resolver
+      function: actions
       actionVerb: UPDATE
-      description: Update risk status.
+      description: Record a human risk-status decision with a reason.
+      inputs:
+        releaseId:
+          title: Release ID
+          type: string
+          required: true
+          description: ShipSignal release identifier.
+        status:
+          title: Status
+          type: string
+          required: true
+          description: READY, AT_RISK, BLOCKED, or INCOMPLETE.
+        reason:
+          title: Reason
+          type: string
+          required: true
+          description: Why the status is changing.
+        confirm:
+          title: Confirm
+          type: boolean
+          required: true
+          description: Must be true. The agent must ask the user before setting this.
 
   rovo:mcp:
     - key: shipsignal-mcp

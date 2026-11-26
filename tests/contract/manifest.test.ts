@@ -27,4 +27,18 @@ describe("manifest MCP tools", () => {
     expect(manifest).toContain("rovo:agent");
     expect(manifest).toContain("rovo:mcp");
   });
+  it("enables Forge SQL for the repositories", () => {
+    expect(manifest).toContain("sql:");
+    expect(manifest).toContain("engine: mysql");
+  });
+  it("routes actions through a dedicated function and declares inputs", () => {
+    expect(manifest).toContain("handler: backend/index.actionHandler");
+    expect(manifest).toContain("function: actions");
+    expect(manifest).toContain("releaseId:");
+    expect(manifest).toContain("confirm:");
+  });
+  it("wires webtrigger and scheduled trigger to separate handlers", () => {
+    expect(manifest).toContain("handler: backend/index.webtriggerHandler");
+    expect(manifest).toContain("handler: backend/index.scheduledHandler");
+  });
 });

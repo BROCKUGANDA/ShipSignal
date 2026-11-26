@@ -30,9 +30,10 @@ describe("resolver request schemas (production hardening)", () => {
     expect(() => CreateRemediationTaskRequestSchema.parse({ releaseId: "r1", summary: "" })).toThrow();
   });
 
-  it("updateRiskStatus restricts status enum", () => {
-    expect(UpdateRiskStatusRequestSchema.parse({ releaseId: "r1", status: "AT_RISK" }).status).toBe("AT_RISK");
-    expect(() => UpdateRiskStatusRequestSchema.parse({ releaseId: "r1", status: "UNKNOWN" })).toThrow();
+  it("updateRiskStatus restricts status enum and requires a reason", () => {
+    expect(UpdateRiskStatusRequestSchema.parse({ releaseId: "r1", status: "AT_RISK", reason: "Owner review" }).status).toBe("AT_RISK");
+    expect(() => UpdateRiskStatusRequestSchema.parse({ releaseId: "r1", status: "UNKNOWN", reason: "x" })).toThrow();
+    expect(() => UpdateRiskStatusRequestSchema.parse({ releaseId: "r1", status: "AT_RISK" })).toThrow();
   });
 
   it("getRiskEvidence caps limit at 100", () => {

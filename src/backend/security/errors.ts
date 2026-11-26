@@ -50,29 +50,25 @@ export function correlationIdFromRequest(req: { payload?: unknown }): string {
 
 export function resolveWorkspaceId(
   context: unknown,
-  payload?: { workspaceId?: string }
+  _payload?: unknown
 ): string {
-  const ctx = (context ?? {}) as { workspaceId?: string; installationId?: string; tenantId?: string };
-  const fromContext = ctx.workspaceId ?? ctx.installationId ?? ctx.tenantId;
+  const ctx = (context ?? {}) as {
+    cloudId?: string;
+    workspaceId?: string;
+    installationId?: string;
+    tenantId?: string;
+    installation?: { id?: string };
+  };
+  const fromContext =
+    ctx.cloudId ??
+    ctx.installation?.id ??
+    ctx.installationId ??
+    ctx.workspaceId ??
+    ctx.tenantId;
   if (fromContext && typeof fromContext === "string" && fromContext.length > 0 && fromContext.length <= 128) {
-    // tenant isolation: ignore payload workspaceId if context present and they differ -> log but prefer context
-    if (payload?.workspaceId && payload.workspaceId !== fromContext) {
-      // eslint-disable-next-line no-console
-      console.warn("[ShipSignal] workspaceId mismatch ignored, using context", { fromContext, payloadWorkspace: payload.workspaceId });
-    }
     return fromContext;
   }
-  if (payload?.workspaceId && typeof payload.workspaceId === "string" && payload.workspaceId.length > 0) {
-    return payload.workspaceId;
-  }
-  // Forge always provides installation context; fallback only for dev with explicit warning, never silent cross-tenant leak
-  // In production Forge, context.installationId is authoritative; default workspace is dev-only
-  const isDev = process.env.NODE_ENV !== "production";
-  if (isDev) {
-    // eslint-disable-next-line no-console
-    console.warn("[ShipSignal] workspaceId fallback to default (dev only)");
-    return "default";
-  }
-  // No workspace in prod -> return empty to trigger auth error handling upstream; caller must validate
+  // Forge invocation context is authoritative. Payload workspace IDs are never
+  // trusted because they are model- or client-supplied.
   return "";
 }

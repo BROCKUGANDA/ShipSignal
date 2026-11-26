@@ -56,6 +56,7 @@ export interface RiskFactor {
   description: string;
   evidenceIds: string[];
   confidence: "VERIFIED" | "PARTIAL" | "UNVERIFIED";
+  verificationRequired: boolean;
   sourceUpdatedAt?: string;
   recommendation: string;
 }
@@ -71,6 +72,41 @@ export interface RiskAssessment {
   blockers: RiskFactor[];
   recommendations: string[];
   warnings: string[];
+}
+
+export type ReadinessVerdict = "SHIP" | "SHIP_WITH_GUARDRAILS" | "HOLD" | "INSUFFICIENT_EVIDENCE";
+
+export interface ReadinessCheck {
+  key: string;
+  label: string;
+  status: "PASS" | "WARN" | "FAIL" | "UNKNOWN";
+  detail: string;
+  evidenceIds: string[];
+}
+
+export interface SourceCoverage {
+  source: EvidenceReference["sourcePlatform"];
+  count: number;
+  current: number;
+  stale: number;
+}
+
+export interface ReleaseBrief {
+  releaseId: string;
+  version: string;
+  title: string;
+  verdict: ReadinessVerdict;
+  status: RiskStatus;
+  riskScore: number | null;
+  confidence: number;
+  summary: string;
+  checks: ReadinessCheck[];
+  blockers: RiskFactor[];
+  evidenceGaps: string[];
+  nextActions: string[];
+  coverage: SourceCoverage[];
+  policyVersion: string;
+  assessedAt: string;
 }
 
 export interface AppError {

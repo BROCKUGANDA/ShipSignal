@@ -30,21 +30,24 @@ ShipSignal is a **real, deployed Atlassian Forge application** (not a mockup) th
 
 1. **Live site:** [shipsignal.atlassian.net](https://shipsignal.atlassian.net)
 2. **App ID:** `ari:cloud:ecosystem::app/6a5e2447-a58d-4cc4-8c56-12c73cb3b5a0` — installed in Jira + Confluence (development).
-3. **Demo flow:** Jira project page → ShipSignal panel → release list → release detail (10 tabs) → dependency graph → risk register → Ask Rovo *"Why is release X at risk?"* → invoke MCP `get_release_readiness` → check Audit.
+3. **Demo flow:** Jira project page → ShipSignal panel → overview → release brief → Checks and cited Evidence → run sync → ask Rovo *"Why is release X at risk?"* → invoke MCP `get-release-readiness` → check Audit.
 4. **Video:** [https://youtu.be/mXgh5iUUsQ0](https://youtu.be/mXgh5iUUsQ0) (3:04, narrated; local file `demo-video/demo-final.mp4`).
 5. **Verify locally:** `npm run typecheck && npm run build && npm run build:backend && npm test`
+6. **No-login UI preview:** `npm run dev:demo` (real UI with deterministic sample evidence; explicitly labelled as preview data).
 
-Full walkthrough: [`docs/JUDGING_GUIDE.md`](docs/JUDGING_GUIDE.md). Bonus-prize map (Rovo / MCP / Teamwork Graph) is in [`docs/DEVPOST_SUBMISSION.md`](docs/DEVPOST_SUBMISSION.md).
+Full walkthrough: [`docs/JUDGING_GUIDE.md`](docs/JUDGING_GUIDE.md). Bonus-prize map (Rovo / MCP) is in [`docs/DEVPOST_SUBMISSION.md`](docs/DEVPOST_SUBMISSION.md).
 
 ## Key features
 
-- **Workspace overview** — active releases, critical risks, open blockers, integration health.
-- **Release detail (10 tabs)** — Summary, Readiness, Timeline, Issues, PRs, Dependencies, Evidence, Risks, Approvals, Audit history.
-- **Dependency graph** — service topology, critical paths, missing/unverified relationships (never fabricated).
-- **Risk register + evidence explorer** — provenance and freshness (`CURRENT` / `STALE` / `PARTIAL` / `UNKNOWN`).
-- **Rovo agent** — evidence-grounded Q&A.
-- **MCP server** — 9 typed tools: `get_release_readiness`, `get_release_blockers`, `get_project_health`, `get_change_impact`, `get_service_dependencies`, `get_risk_evidence`, `generate_release_report`, `create_remediation_task`, `update_risk_status`.
-- **Sync worker** — hourly `scheduledTrigger` + webtrigger reconciliation, idempotent, partial results, audit trail.
+- **Release brief** — `SHIP`, `SHIP WITH GUARDRAILS`, `HOLD`, or `INSUFFICIENT EVIDENCE` with deterministic score, confidence, source coverage, and next actions.
+- **Evidence-backed checks** — review readiness, critical issues, documentation, freshness, and coverage, each linked to cited records.
+- **Workspace overview** — release verdicts, blockers, confidence, and per-source context health.
+- **Evidence explorer** — source platform, source ID, retrieval/update time, freshness, and direct source links where Atlassian exposes them.
+- **Risk register** — release-level blockers with factor confidence and explicit human-verification flags.
+- **Rovo agent** — evidence-grounded Q&A and read-only release actions.
+- **MCP server** — 9 typed tools: `get-release-readiness`, `get-release-blockers`, `get-project-health`, `get-change-impact`, `get-service-dependencies`, `get-risk-evidence`, `generate-release-report`, `create-remediation-task`, `update-risk-status`. Mutations require explicit confirmation.
+- **Sync worker** — hourly trigger + manual sync; release-scoped Jira issues, Confluence pages, Bitbucket PRs, and Compass components; content-hash deduplication; partial results and durable audit.
+- **Durable audit** — readiness checks, sync reconciliation, and confirmed mutations are written to Forge SQL and surfaced in the Audit view.
 
 ## Architecture
 
@@ -64,10 +67,11 @@ Forge SQL (repositories) ← Sync worker (workers/sync-worker.ts)
 Rovo Agent / MCP (rovo:agent, rovo:mcp)
 ```
 
-- **Frontend:** React 18 Custom UI + Atlaskit (Vite).
-- **Backend:** Forge resolvers, services, repositories, workers, security (retry + circuit breaker + audit + idempotency).
-- **Domain:** `src/domain/` — types, Zod schemas, deterministic risk engine.
-- **Security:** server-side authz, tenant isolation via Forge context, strict Zod inputs, least-privilege scopes, no secrets in repo.
+- **Frontend:** React 18 Custom UI (Vite), hash routing for the Forge iframe, accessible status/tab surfaces.
+- **Backend:** split Forge entrypoints for the UI resolver, Rovo actions, scheduled trigger, and webtrigger; services, repositories, workers, security (retry, circuit breaker, durable audit).
+- **Domain:** `src/domain/` — typed evidence references, deterministic risk policy, release brief.
+- **Security:** server-side authz, tenant isolation from Forge `cloudId`/installation context (payload tenant IDs are never trusted), strict Zod inputs, least-privilege scopes, no secrets in repo.
+- **Teamwork Graph:** adapter included, but graph scopes are restricted for this app; it reports an honest unhealthy/partial state rather than fabricating relationships.
 
 Details: [`docs/architecture.md`](docs/architecture.md) · [`docs/rovo-mcp.md`](docs/rovo-mcp.md).
 
@@ -128,11 +132,12 @@ forge lint
 | Check | Result |
 |-------|--------|
 | `npm run typecheck` | PASS |
-| `npm test` | PASS (unit + contract) |
+| `npm test` | PASS (41 tests across 13 files) |
 | `npm run build` | PASS → `static/frontend/` |
 | `npm run build:backend` | PASS |
+| `forge lint` | PASS |
 
-See [`docs/PRODUCTION_READINESS.md`](docs/PRODUCTION_READINESS.md) for known limitations (in-memory audit/idempotency → Forge SQL wiring P2, Compass stable API, release provisioning).
+See [`docs/PRODUCTION_READINESS.md`](docs/PRODUCTION_READINESS.md) for remaining limitations (Compass API preview, Teamwork Graph scope restriction, in-memory sync-event idempotency, release provisioning).
 
 ## Documentation
 
