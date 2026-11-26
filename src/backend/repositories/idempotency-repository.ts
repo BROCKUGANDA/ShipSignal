@@ -23,7 +23,18 @@ export class IdempotencyRepository {
       return true;
     } catch (error) {
       if (isDuplicateKey(error)) return false;
-      throw error;
+      // Surface the platform's own code/status instead of a generic message so
+      // a provisioning failure is distinguishable from a transient fault.
+      const e = error as { code?: string; message?: string; responseDetails?: { status?: number; statusText?: string; traceId?: string | null } };
+      const detail = [
+        e.code ?? "SQL_ERROR",
+        e.responseDetails?.status ? `HTTP ${e.responseDetails.status}` : null,
+        e.responseDetails?.traceId ? `trace ${e.responseDetails.traceId}` : null,
+        e.message ?? "unknown",
+      ]
+        .filter(Boolean)
+        .join(" · ");
+      throw new Error(`Idempotency claim failed: ${detail}`);
     }
   }
   async complete(workspaceId: string, operation: string, key: string, resultJson: string): Promise<void> {

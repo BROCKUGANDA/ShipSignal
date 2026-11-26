@@ -71,6 +71,16 @@ export class JiraAdapter implements IntegrationProvider {
   async fetchIssuesForVersion(versionName: string, limit = 50): Promise<JiraIssue[]> {
     const jql = encodeURIComponent(`fixVersion = "${versionName.replace(/"/g, '\\"')}" ORDER BY priority DESC`);
     // /rest/api/3/search is sunset for many tenants (410 Gone); /search/jql is the replacement.
+    return this.searchIssues(jql, limit);
+  }
+
+  /** Issues for a project with no versions — used for projects that don't tag releases. */
+  async fetchIssuesForProject(projectKey: string, limit = 50): Promise<JiraIssue[]> {
+    const jql = encodeURIComponent(`project = "${projectKey.replace(/"/g, '\\"')}" ORDER BY priority DESC, updated DESC`);
+    return this.searchIssues(jql, limit);
+  }
+
+  private async searchIssues(jql: string, limit: number): Promise<JiraIssue[]> {
     const res = await api.asApp().requestJira(
       route`/rest/api/3/search/jql?jql=${jql}&maxResults=${limit}&fields=summary,status,priority,issuetype,updated`
     );

@@ -62,14 +62,14 @@ describe("provider endpoint contracts", () => {
     expect(requests[0]?.url).toContain("/rest/api/3/search/jql");
   });
 
-  it("Confluence uses v2 endpoints (v1 space/content are 410 Gone)", async () => {
+  it("Confluence uses v1 content endpoints (v2 needs granular scopes we lack)", async () => {
     await new ConfluenceAdapter().healthCheck();
-    expect(requests[0]?.url).toContain("/wiki/api/v2/spaces");
+    expect(requests[0]?.url).toContain("/wiki/rest/api/content");
     requests.length = 0;
     nextResponse = { ok: true, status: 200, body: { results: [] } };
     await new ConfluenceAdapter().fetchPages(5);
-    expect(requests[0]?.url).toContain("/wiki/api/v2/pages");
-    expect(requests.some((r) => r.url.includes("/wiki/rest/api/"))).toBe(false);
+    expect(requests[0]?.url).toContain("/wiki/rest/api/content");
+    expect(requests.some((r) => r.url.includes("/wiki/api/v2/"))).toBe(false);
   });
 
   it("Compass queries the compass.searchComponents root field with a cloudId", async () => {

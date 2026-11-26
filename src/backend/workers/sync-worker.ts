@@ -54,10 +54,15 @@ export class SyncWorker {
 
     const idem = new IdempotencyRepository();
     const syncKey = `sync-${new Date().toISOString().slice(0, 13)}`;
-    const claimResult = await idem.claim(workspaceId, "sync", syncKey).catch(() => null);
-    if (claimResult === null) {
-      warnings.push("Idempotency check unavailable; proceeding without duplicate suppression.");
-    } else if (!claimResult) {
+    const claimOutcome = await idem
+      .claim(workspaceId, "sync", syncKey)
+      .then((claimed) => ({ claimed }))
+      .catch((error: unknown) => ({ claimed: null, error: (error as Error).message }));
+    if (claimOutcome.claimed === null) {
+      warnings.push(
+        `Idempotency check unavailable; proceeding without duplicate suppression (${claimOutcome.error ?? "unknown error"}).`
+      );
+    } else if (!claimOutcome.claimed) {
       return { workspaceId, sources: [], evidenceCount: 0, releasesUpserted: 0, warnings: [...warnings, "Duplicate sync suppressed."], syncedAt: now };
     }
 
@@ -72,7 +77,49 @@ export class SyncWorker {
         for (const project of projects) {
           const versions = await this.jira.fetchVersions(project.id);
           if (versions.length === 0) {
-            warnings.push(`Jira project ${project.key} has no versions (releases are derived from Jira versions).`);
+            // Project tracks work without Jira versions. Create one honest
+            // "unversioned work" release so the readiness brief has a subject,
+            // and label it clearly instead of inventing a version number.
+            const releaseId = stableId("rel", `${workspaceId}:${project.key}:unversioned`);
+            await this.releaseRepo.upsert({
+              id: releaseId,
+              workspaceId,
+              projectId: project.key,
+              version: "unversioned",
+              title: `${project.name} — unversioned work`,
+              status: "ACTIVE",
+              createdAt: now,
+              updatedAt: now,
+              versionToken: 1,
+            });
+            releasesUpserted += 1;
+            warnings.push(
+              `Jira project ${project.key} has no versions; using one "unversioned work" release from its issues.`
+            );
+
+            const issues = await this.jira.fetchIssuesForProject(project.key, 50);
+            for (const issue of issues) {
+              const status = issue.fields?.status?.name ?? "unknown";
+              const priority = issue.fields?.priority?.name ?? "none";
+              const type = issue.fields?.issuetype?.name ?? "issue";
+              await this.evidenceRepo.insert({
+                id: stableId("ev-jira-issue", `${workspaceId}:${issue.id}:${issue.fields?.updated ?? ""}`),
+                workspace_id: workspaceId,
+                source_platform: "jira",
+                source_id: issue.key,
+                evidence_type: "issue_snapshot",
+                title: `${issue.key}: ${issue.fields?.summary ?? "Untitled issue"}`,
+                summary: `status=${status}; priority=${priority}; type=${type}; updated=${issue.fields?.updated ?? "unknown"}`,
+                retrieved_at: now,
+                source_updated_at: issue.fields?.updated ?? null,
+                freshness: freshnessFor(issue.fields?.updated),
+                release_id: releaseId,
+                source_url: issue.self ? issue.self.replace("/rest/api/3/issue/", "/browse/") : null,
+                content_hash: hash(`${workspaceId}:jira:issue:${issue.id}:${status}:${priority}:${issue.fields?.updated ?? ""}`),
+              });
+              evidenceCount += 1;
+            }
+            continue;
           }
           for (const version of versions.slice(0, 10)) {
             const releaseId = stableId("rel", `${workspaceId}:${project.key}:${version.id}`);
