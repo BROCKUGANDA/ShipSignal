@@ -502,18 +502,58 @@ define("listReleases", async (req) => {
     const workspaceId = resolveWorkspaceId(req.context, req.payload);
     if (!workspaceId) return { success: false, error: { code: "AUTHENTICATION_ERROR" as const, message: "Workspace context required.", retryable: false, correlationId: correlationIdFromRequest(req) } };
     const releases = await releaseRepo.listByWorkspace(workspaceId, 50);
+    const page = releases.slice(0, 25);
+    const releaseIds = page.map((r) => r.id);
+    const [linkedRows, workspaceRows] = await Promise.all([
+      evidenceRepo.listByWorkspaceIds(workspaceId, releaseIds, 500),
+      evidenceRepo.listByWorkspace(workspaceId, 200),
+    ]);
+    const linkedByRelease = new Map<string, typeof linkedRows>();
+    for (const row of linkedRows) {
+      if (!row.release_id) continue;
+      const group = linkedByRelease.get(row.release_id) ?? [];
+      group.push(row);
+      linkedByRelease.set(row.release_id, group);
+    }
+    const toEvidence = (rows: typeof linkedRows): EvidenceReference[] =>
+      rows.map((e) => ({
+        id: e.id,
+        workspaceId: e.workspace_id,
+        sourcePlatform: e.source_platform as EvidenceReference["sourcePlatform"],
+        sourceId: e.source_id,
+        evidenceType: e.evidence_type,
+        retrievedAt: e.retrieved_at,
+        ...(e.source_updated_at ? { sourceUpdatedAt: e.source_updated_at } : {}),
+        ...(e.source_url ? { sourceUrl: e.source_url } : {}),
+        freshness: e.freshness as EvidenceReference["freshness"],
+        title: e.title,
+        summary: e.summary ?? "",
+      }));
     const enriched: Array<Record<string, unknown>> = [];
-    for (const release of releases.slice(0, 25)) {
-      const loaded = await loadAssessment(workspaceId, release.id);
-      enriched.push(loaded
-        ? {
-            ...release,
-            verdict: loaded.brief.verdict,
-            riskScore: loaded.brief.riskScore,
-            confidence: loaded.brief.confidence,
-            blockerCount: loaded.brief.blockers.length,
-          }
-        : { ...release, verdict: "INSUFFICIENT_EVIDENCE", riskScore: null, confidence: 0, blockerCount: 0 });
+    for (const release of page) {
+      const linked = linkedByRelease.get(release.id) ?? [];
+      const contextual = linked.length > 0
+        ? workspaceRows.filter((e) => e.evidence_type.includes("documentation") || e.evidence_type.includes("pull_request"))
+        : workspaceRows;
+      const seen = new Set<string>();
+      const rows = [...linked, ...contextual].filter((row) => {
+        if (seen.has(row.id)) return false;
+        seen.add(row.id);
+        return true;
+      });
+      const evidence = toEvidence(rows);
+      const assessment = assessRelease(release, evidence, deriveEvidenceSignals(evidence));
+      if (linked.length === 0 && workspaceRows.length > 0) {
+        assessment.warnings.push("No evidence is linked to this release yet; workspace evidence is shown as context.");
+      }
+      const brief = buildReleaseBrief(release, evidence, assessment);
+      enriched.push({
+        ...release,
+        verdict: brief.verdict,
+        riskScore: brief.riskScore,
+        confidence: brief.confidence,
+        blockerCount: brief.blockers.length,
+      });
     }
     return { success: true, data: { releases: enriched, count: enriched.length, retrievedAt: new Date().toISOString() } };
   } catch (error) {

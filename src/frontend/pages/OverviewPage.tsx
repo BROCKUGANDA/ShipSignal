@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
-import { PageHeader, LoadingState, EmptyState, ErrorState, MetricCard, StatusPill } from "../components/Common";
+import { PageHeader, LoadingState, EmptyState, ErrorState, MetricCard, StatusPill, VerdictBanner } from "../components/Common";
 import { useResolver } from "../hooks/useResolver";
 
 interface ReleaseSummary {
@@ -84,6 +84,13 @@ export default function OverviewPage() {
       ) : null}
 
       <div className="section-title">Recent releases</div>
+      {releases.length > 0 ? (
+        <VerdictBanner
+          verdict={hold > 0 ? "HOLD" : guarded > 0 ? "SHIP_WITH_GUARDRAILS" : insufficient > 0 ? "INSUFFICIENT_EVIDENCE" : "SHIP"}
+          confidence={Math.min(...releases.map((release) => release.confidence ?? 0))}
+          riskScore={releases.reduce<number | null>((max, release) => (release.riskScore == null ? max : max == null ? release.riskScore : Math.max(max, release.riskScore)), null)}
+        />
+      ) : null}
       {releasesQuery.loading ? <LoadingState label="Scoring releases..." /> : null}
       {releasesQuery.error ? <ErrorState message={releasesQuery.error} onRetry={() => void releasesQuery.call()} /> : null}
       {!releasesQuery.loading && !releasesQuery.error && releases.length === 0 ? (

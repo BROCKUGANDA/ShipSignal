@@ -8,6 +8,8 @@ import { EvidenceRepository } from "../repositories/evidence-repository";
 import { ReleaseRepository } from "../repositories/release-repository";
 import { ensureMigrations } from "../database/migrations";
 import { handleSyncEvent } from "../events/sync-handler";
+import { IdempotencyRepository } from "../repositories/idempotency-repository";
+import { AuditService } from "../services/audit-service";
 
 export interface SyncResult {
   workspaceId: string;
@@ -46,6 +48,15 @@ export class SyncWorker {
       await ensureMigrations();
     } catch (error) {
       warnings.push(`Database migrations failed: ${(error as Error).message}`);
+    }
+
+    const idem = new IdempotencyRepository();
+    const syncKey = `sync-${new Date().toISOString().slice(0, 13)}`;
+    const claimResult = await idem.claim(workspaceId, "sync", syncKey).catch(() => null);
+    if (claimResult === null) {
+      warnings.push("Idempotency check unavailable; proceeding without duplicate suppression.");
+    } else if (!claimResult) {
+      return { workspaceId, sources: [], evidenceCount: 0, releasesUpserted: 0, warnings: [...warnings, "Duplicate sync suppressed."], syncedAt: now };
     }
 
     const jiraHealth = await this.jira.healthCheck();
@@ -277,6 +288,24 @@ export class SyncWorker {
     }
 
     await handleSyncEvent({ eventId: `sync-${workspaceId}-${now}`, workspaceId });
+
+    try {
+      await idem.complete(workspaceId, "sync", syncKey, JSON.stringify({ evidenceCount, releasesUpserted, syncedAt: now }));
+    } catch (error) {
+      console.error("[ShipSignal] idempotency complete failed", { workspaceId, syncKey, message: (error as Error).message });
+    }
+
+    AuditService.record({
+      id: `audit-sync-${Date.now()}`,
+      workspaceId,
+      actorId: "system",
+      actorType: "SYSTEM",
+      operation: "SYNC_COMPLETED",
+      targetEntity: `workspace:${workspaceId}`,
+      result: "SUCCESS",
+      timestamp: now,
+      correlationId: `sync-${Date.now()}`,
+    });
 
     return {
       workspaceId,

@@ -52,9 +52,30 @@ export function MetricCard({ label, value, hint }: { label: string; value: strin
 }
 
 export function StatusPill({ status }: { status: string }) {
-  return <span className={`status status-${status.replaceAll(" ", "_")}`}>{status.replaceAll("_", " ")}</span>;
+  const label = status.replaceAll("_", " ");
+  return (
+    <span className={`status status-${status.replaceAll(" ", "_")}`} title={label} aria-label={`Status ${label}`}>
+      {label}
+    </span>
+  );
 }
 
 export function FreshnessChip({ freshness }: { freshness: string }) {
-  return <span className={`status status-${freshness}`}>{freshness}</span>;
+  return (
+    <span className={`status status-${freshness}`} title={`Freshness ${freshness}`} aria-label={`Evidence freshness ${freshness}`}>
+      {freshness}
+    </span>
+  );
+}
+
+export function VerdictBanner({ verdict, confidence, riskScore, policyVersion }: { verdict: string; confidence?: number; riskScore?: number | null; policyVersion?: string }) {
+  return (
+    <div className={`verdict-banner verdict-${verdict}`} role="status" aria-label={`Release verdict ${verdict}`}>
+      <strong>{verdict.replaceAll("_", " ")}</strong>
+      <span className="muted">
+        {" "}· {confidence ?? 0}% confidence · risk {riskScore ?? "n/a"}
+        {policyVersion ? ` · ${policyVersion}` : null}
+      </span>
+    </div>
+  );
 }
