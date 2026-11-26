@@ -34,7 +34,7 @@
     "@forge/bridge": "^7.2.1",
     "@forge/events": "^3.0.9",
     "@forge/resolver": "^2.0.2",
-    "@forge/sql": "^4.0.9",
+    "@forge/sql": "^4.0.11",
     "zod": "^4.6.7"
   },
   "devDependencies": {
