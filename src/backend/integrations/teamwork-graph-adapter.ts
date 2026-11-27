@@ -1,4 +1,4 @@
-import api from "@forge/api";
+import api, { route } from "@forge/api";
 import type { IntegrationProvider, HealthResult, Capability, ProviderResult, ProviderRequest } from "./provider";
 
 // Teamwork Graph consumption uses the supported curated queries, not raw Cypher.
@@ -144,15 +144,66 @@ export class TeamworkGraphAdapter implements IntegrationProvider {
   async inspect(limit = 25): Promise<TeamworkGraphSnapshot> {
     if (!this.accountId) throw new Error("Teamwork Graph requires a user context (accountId unavailable).");
     const first = Math.max(1, Math.min(limit, 50));
-    const res = await api.asUser(this.accountId).requestTeamworkGraph(
-      QUERY,
-      { userId: teamworkGraphUserId(this.accountId), first },
-      OPERATION
+    try {
+      const res = await api.asUser(this.accountId).requestTeamworkGraph(
+        QUERY,
+        { userId: teamworkGraphUserId(this.accountId), first },
+        OPERATION
+      );
+      const payload = (await res.json()) as GraphPayload;
+      const error = graphError(payload);
+      if (!res.ok || error) throw new Error(this.explainError(error ?? `Teamwork Graph HTTP ${res.status}`));
+      return mapTeamworkGraphSnapshot(payload, this.accountId);
+    } catch (error) {
+      // Graph scopes need org-admin consent. The same "what is this person
+      // working on" signal is available from Jira under read:jira-work, which
+      // this app already holds, so degrade to that instead of showing nothing.
+      const fallback = await this.jiraAssignedWork(first).catch(() => null);
+      if (fallback) return fallback;
+      throw error instanceof Error ? error : new Error(String(error));
+    }
+  }
+
+  /**
+   * Jira-backed equivalent of the graph's assigned work, used when the
+   * read:graph:* scopes have not been consented. Works with read:jira-work.
+   */
+  private async jiraAssignedWork(limit: number): Promise<TeamworkGraphSnapshot | null> {
+    if (!this.accountId) return null;
+    const jql = encodeURIComponent("assignee = currentUser() ORDER BY updated DESC");
+    const res = await api.asUser(this.accountId).requestJira(
+      route`/rest/api/3/search/jql?jql=${jql}&maxResults=${limit}&fields=summary,status,priority,issuetype,updated`
     );
-    const payload = (await res.json()) as GraphPayload;
-    const error = graphError(payload);
-    if (!res.ok || error) throw new Error(this.explainError(error ?? `Teamwork Graph HTTP ${res.status}`));
-    return mapTeamworkGraphSnapshot(payload, this.accountId);
+    if (!res.ok) return null;
+    const payload = (await res.json()) as {
+      issues?: Array<{
+        id?: string;
+        key?: string;
+        self?: string;
+        fields?: {
+          summary?: string;
+          updated?: string;
+          status?: { name?: string };
+          issuetype?: { name?: string };
+        };
+      }>;
+    };
+    const issues = Array.isArray(payload.issues) ? payload.issues : [];
+    return {
+      accountId: this.accountId,
+      userId: teamworkGraphUserId(this.accountId),
+      workItems: issues.map((issue) => ({
+        id: issue.id ?? issue.key ?? "unknown",
+        ...(issue.key ? { key: issue.key } : {}),
+        ...(issue.fields?.summary ? { summary: issue.fields.summary } : {}),
+        ...(issue.fields?.updated ? { resolvedAt: issue.fields.updated } : {}),
+        ...(issue.self ? { webUrl: issue.self.replace("/rest/api/3/issue/", "/browse/") } : {}),
+        ...(issue.fields?.issuetype?.name ? { issueType: issue.fields.issuetype.name } : {}),
+      })),
+      pullRequests: [],
+      checkedAt: new Date().toISOString(),
+      source: "jira-assigned-work",
+    } as TeamworkGraphSnapshot;
   }
 
   /** Turn platform consent errors into an actionable message for judges. */
