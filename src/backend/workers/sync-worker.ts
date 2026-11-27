@@ -298,14 +298,20 @@ export class SyncWorker {
     if (accountId) {
       const twg = new TeamworkGraphAdapter(accountId);
       try {
-        const snapshot = await twg.inspect(25);
-        sources.push("teamwork-graph");
-        for (const item of snapshot.workItems) {
-          const sourceId = item.key ?? item.id;
-          await this.evidenceRepo.insert({
-            id: stableId("ev-twg-work", `${workspaceId}:${item.id}:${item.resolvedAt ?? item.dueAt ?? ""}`),
-            workspace_id: workspaceId,
-            source_platform: "teamwork-graph",
+      const snapshot = await twg.inspect(25);
+      const graphSource = (snapshot as { source?: string }).source === "jira-assigned-work" ? "jira-assigned-work" : "teamwork-graph";
+      sources.push(graphSource);
+      if (graphSource === "jira-assigned-work") {
+        warnings.push(
+          "Teamwork Graph scopes are not consented for this installation; assigned work is sourced from Jira's own API and labelled jira-assigned-work."
+        );
+      }
+      for (const item of snapshot.workItems) {
+        const sourceId = item.key ?? item.id;
+        await this.evidenceRepo.insert({
+          id: stableId("ev-twg-work", `${workspaceId}:${item.id}:${item.resolvedAt ?? item.dueAt ?? ""}`),
+          workspace_id: workspaceId,
+          source_platform: graphSource,
             source_id: sourceId,
             evidence_type: "graph_work_item",
             title: item.key ? `${item.key}: ${item.summary ?? "Untitled work item"}` : item.summary ?? "Teamwork Graph work item",
